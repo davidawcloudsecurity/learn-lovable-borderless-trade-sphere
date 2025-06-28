@@ -355,3 +355,32 @@ resource "aws_instance" "wordpress" {
     Name = "wordpress-instance"
   }
 }
+
+resource "aws_instance" "mysql" {
+  ami                    = var.ami
+  instance_type          = "t2.micro"
+  subnet_id              = aws_subnet.private_db.id
+  vpc_security_group_ids = [aws_security_group.private_db.id]
+  iam_instance_profile   = aws_iam_instance_profile.ec2_ssm_profile.name
+
+  user_data = <<-EOF
+              #!/bin/bash
+              yum update -y
+              amazon-linux-extras install docker -y
+              service docker start
+              usermod -a -G docker ec2-user
+              docker run -d -e MYSQL_ROOT_PASSWORD=rootpassword \
+                         -e MYSQL_DATABASE=wordpress \
+                         -e MYSQL_USER=wordpress \
+                         -e MYSQL_PASSWORD=wordpress \
+                         -p 3306:3306 mysql:5.7
+              EOF
+
+  tags = {
+    Name = "mysql-instance"
+  }
+}
+
+output "seeds" {
+  value = [aws_instance.nginx.private_ip, aws_instance.wordpress.private_ip, aws_instance.mysql.private_ip]
+}
