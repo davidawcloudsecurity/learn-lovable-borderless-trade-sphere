@@ -78,7 +78,7 @@ const ProductGrid = () => {
       id: 7,
       name: "Portable Solar Power Bank 20000mAh",
       price: 79,
-      image: "photo-1609592806920-9bf9b9bc4418",
+      image: "photo-1662601355172-772b4daa361d",
       country: "China",
       flag: "🇨🇳",
       rating: 4.4,
