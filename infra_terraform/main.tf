@@ -361,6 +361,7 @@ resource "aws_instance" "wordpress" {
   tags = {
     Name = "wordpress-instance"
   }
+  depends_on = [aws_nat_gateway.nat]
 }
 
 resource "aws_instance" "mysql" {
@@ -394,6 +395,7 @@ resource "aws_instance" "mysql" {
   tags = {
     Name = "mysql-instance"
   }
+  depends_on = [aws_nat_gateway.nat]
 }
 
 output "seeds" {
