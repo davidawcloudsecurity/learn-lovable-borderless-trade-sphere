@@ -354,7 +354,7 @@ resource "aws_instance" "wordpress" {
               cd
               git clone https://github.com/davidawcloudsecurity/learn-lovable-borderless-trade-sphere.git
               cd learn-lovable-borderless-trade-sphere/
-              sed -i "s/localhost/${aws_instance.mysql.private_ip}/g" src/components/Header.tsx
+              sed -i "s/localhost/$(hostname -I | awk '{print $1}')/g" src/components/Header.tsx
               npm i;npm run dev
               EOF
 
@@ -374,7 +374,7 @@ resource "aws_instance" "mysql" {
               #!/bin/bash
               git clone https://github.com/davidawcloudsecurity/learn-lovable-borderless-trade-sphere.git
               cd learn-lovable-borderless-trade-sphere/
-              sed -i "s/localhost/${aws_instance.mysql.private_ip}/g" server.js
+              sed -i "s/localhost/$(hostname -I | awk '{print $1}')/g" server.js
               apt update -y
               curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -
               apt-get install -y nodejs
