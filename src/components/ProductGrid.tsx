@@ -32,7 +32,7 @@ const ProductGrid = () => {
       id: 3,
       name: "Professional 50mm f/1.4 Prime Lens – Precision, Power, and Performance",
       price: 549,
-      image: "photo-1606983340126-99ab4feaa64a",
+      image: "photo-1580567567605-ddfc2d68ef13",
       country: "USA",
       flag: "🇺🇸",
       rating: 4.9,
