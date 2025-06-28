@@ -9,7 +9,6 @@ variable "ami" {
 }
 
 provider "aws" {
-  version = "5.70.0"
   region  = var.region
 }
 
