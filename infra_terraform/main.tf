@@ -259,6 +259,14 @@ resource "aws_security_group" "private_db" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
+  egress {
+    description = "SSM from AWS"
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
   tags = {
     Name = "allow_wordpress"
   }
