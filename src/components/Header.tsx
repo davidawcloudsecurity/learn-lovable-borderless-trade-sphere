@@ -2,8 +2,6 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { ShoppingCart, Search, Globe, Menu, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
-const BACKEND_URL = 'http://localhost:3001'; // 👈 Backend API base URL
-
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [currency, setCurrency] = useState('USD');
@@ -30,7 +28,7 @@ const Header = () => {
         return;
       }
       try {
-        const res = await fetch(`${BACKEND_URL}/api/search/suggestions?q=${encodeURIComponent(query)}`);
+        const res = await fetch(`/api/search/suggestions?q=${encodeURIComponent(query)}`);
         const data = await res.json();
         setSuggestions(data.suggestions || []);
         setShowSuggestions(true);
@@ -54,7 +52,7 @@ const Header = () => {
     if (!searchQuery.trim()) return;
 
     try {
-      const res = await fetch(`${BACKEND_URL}/api/search?q=${encodeURIComponent(searchQuery)}&limit=20&offset=0`);
+      const res = await fetch(`/api/search?q=${encodeURIComponent(searchQuery)}&limit=20&offset=0`);
       const data = await res.json();
       console.log('Search results:', data); // 💡 Replace with your state update
       setShowSuggestions(false);
