@@ -232,17 +232,25 @@ resource "aws_security_group" "private_db" {
     #    cidr_blocks = [aws_security_group.public.id]
     security_groups = [aws_security_group.private_app.id]
   }
-  /* Remove to test
+/*
   ingress {
     description = "Setup to allow SSM"
-    from_port   = 443
-    to_port     = 443
+    from_port   = 3001
+    to_port     = 3001
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]    
 #    cidr_blocks = [aws_security_group.public.id]
-#    security_groups = [aws_security_group.private_app.id]
-  }  
+    security_groups = [aws_security_group.private_app.id]
+  } 
 */
+  ingress {
+    description = "Setup to allow SSM"
+    from_port   = 3001
+    to_port     = 3001
+    protocol    = "tcp"
+#    cidr_blocks = [aws_security_group.public.id]
+    security_groups = [aws_security_group.public_facing.id]
+  }  
+
   ingress {
     description = "MYSQL/Aurora from private subnet app tier"
     from_port   = 0
