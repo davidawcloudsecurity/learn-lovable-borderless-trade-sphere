@@ -331,10 +331,10 @@ resource "aws_instance" "nginx" {
                   }
 
                   location /api/ {
-                    proxy_pass http://${aws_instance.mysql.private_ip}:3001;
-                    proxy_http_version 1.1;
-                    proxy_set_header Host $host;
-                    proxy_set_header X-Real-IP $remote_addr;
+                      proxy_pass http://${aws_instance.mysql.private_ip}:3001;
+                      proxy_http_version 1.1;
+                      proxy_set_header Host \$host;
+                      proxy_set_header X-Real-IP \$remote_addr;
                   }
               }
               EOF1
@@ -352,6 +352,10 @@ resource "aws_instance" "nginx" {
   tags = {
     Name = "nginx-instance"
   }
+  depends_on = [
+      aws_nat_gateway.nat,
+      aws_instance.mysql
+  ]
 }
 
 resource "aws_instance" "wordpress" {
