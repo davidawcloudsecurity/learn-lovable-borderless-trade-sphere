@@ -8,6 +8,11 @@ variable "ami" {
   default     = "ami-02c21308fed24a8ab" # Amazon Linux 2 AMI (HVM) - Kernel 5.10, SSD Volume Type in us-east-1
 }
 
+variable "ami_ubuntu" {
+  description = "ubuntu-jammy-22.04 AMI ID"
+  default     = "ami-0a7d80731ae1b2435" # ubuntu-jammy-22.04
+}
+
 provider "aws" {
   region  = var.region
 }
@@ -335,7 +340,7 @@ resource "aws_instance" "nginx" {
 }
 
 resource "aws_instance" "wordpress" {
-  ami                    = "ami-0a7d80731ae1b2435"
+  ami                    = var.ami_ubuntu
   instance_type          = "t2.micro"
   subnet_id              = aws_subnet.private_app.id
   vpc_security_group_ids = [aws_security_group.private_app.id]
@@ -343,6 +348,7 @@ resource "aws_instance" "wordpress" {
 
   user_data = <<-EOF
               #!/bin/bash
+              apt update -y
               curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -
               sudo apt install -y nodejs
               cd
@@ -357,7 +363,7 @@ resource "aws_instance" "wordpress" {
 }
 
 resource "aws_instance" "mysql" {
-  ami                    = var.ami
+  ami                    = var.ami_ubuntu
   instance_type          = "t2.micro"
   subnet_id              = aws_subnet.private_db.id
   vpc_security_group_ids = [aws_security_group.private_db.id]
@@ -365,8 +371,10 @@ resource "aws_instance" "mysql" {
 
   user_data = <<-EOF
               #!/bin/bash
-              yum update -y
-              amazon-linux-extras install docker -y
+              git clone https://github.com/davidawcloudsecurity/learn-lovable-borderless-trade-sphere.git
+              cd learn-lovable-borderless-trade-sphere/
+              apt update -y
+              apt install docker -y
               service docker start
               usermod -a -G docker ec2-user
               docker run -d -e MYSQL_ROOT_PASSWORD=rootpassword \
