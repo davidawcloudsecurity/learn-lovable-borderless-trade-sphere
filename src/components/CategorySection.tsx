@@ -25,7 +25,7 @@ const CategorySection = () => {
     },
     {
       name: "Health & Beauty",
-      image: "photo-1556228578-dd837e4e2f29",
+      image: "photo-1658247412403-f0459cb062b9",
       count: "12,000+ products"
     },
     {
