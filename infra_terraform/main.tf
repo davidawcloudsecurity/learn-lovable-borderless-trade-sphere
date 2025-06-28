@@ -354,7 +354,7 @@ resource "aws_instance" "wordpress" {
               cd
               git clone https://github.com/davidawcloudsecurity/learn-lovable-borderless-trade-sphere.git
               cd learn-lovable-borderless-trade-sphere/
-              sed -i "s/localhost/$(aws_instance.mysql.private_ip)/g" src/components/Header.tsx
+              sed -i "s/localhost/${aws_instance.mysql.private_ip}/g" src/components/Header.tsx
               npm i;npm run dev
               EOF
 
