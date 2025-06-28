@@ -354,7 +354,7 @@ resource "aws_instance" "wordpress" {
               cd
               git clone https://github.com/davidawcloudsecurity/learn-lovable-borderless-trade-sphere.git
               cd learn-lovable-borderless-trade-sphere/
-              sed -i "s/localhost/$(hostname -I | awk '{print $1}')/g" src/components/Header.tsx
+              sed -i "s/localhost/$(aws_instance.mysql.private_ip)/g" src/components/Header.tsx
               npm i;npm run dev
               EOF
 
@@ -362,6 +362,7 @@ resource "aws_instance" "wordpress" {
     Name = "wordpress-instance"
   }
   depends_on = [aws_nat_gateway.nat]
+  depends_on = [aws_instance.mysql]
 }
 
 resource "aws_instance" "mysql" {
