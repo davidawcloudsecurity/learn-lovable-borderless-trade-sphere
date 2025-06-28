@@ -39,6 +39,24 @@ npm i
 
 # Step 4: Start the development server with auto-reloading and an instant preview.
 npm run dev
+
+# Step 5: Start the api server (e.g., using Express).
+npm install express cors
+
+# Step 6: Run the backend
+node server.js
+```
+
+Test it
+```
+http://localhost:3001/api/search/suggestions?q=lap
+```
+You should get JSON like:
+
+```
+{
+  "suggestions": ["laptop", "lamp"]
+}
 ```
 
 **Edit a file directly in GitHub**
