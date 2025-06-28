@@ -145,8 +145,8 @@ resource "aws_security_group" "public_facing" {
 
   ingress {
     description = "HTTP from anywhere"
-    from_port   = 8080
-    to_port     = 8080
+    from_port   = 80
+    to_port     = 80
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
@@ -306,11 +306,11 @@ resource "aws_instance" "nginx" {
               # Create a custom NGINX configuration to point to the WordPress instance
               cat << EOF1 > /home/ec2-user/default.conf
               server {
-                  listen 8080;
+                  listen 80;
                   server_name localhost;
               
                   location / {
-                      proxy_pass http://${aws_instance.wordpress.private_ip};
+                      proxy_pass http://${aws_instance.wordpress.private_ip}:8080;
                       proxy_set_header Host \$host;
                       proxy_set_header X-Real-IP \$remote_addr;
                       proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
@@ -319,7 +319,7 @@ resource "aws_instance" "nginx" {
               }
               EOF1
 
-              docker run -d -p 8080:8080 --name nginx-demo nginx;
+              docker run -d -p 80:80 --name nginx-demo nginx;
               # Wait until the nginx-demo container is running
               while [ "$(docker inspect -f '{{.State.Running}}' nginx-demo)" != "true" ]; do
                   echo "Waiting for nginx-demo to start..."
