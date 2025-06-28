@@ -335,7 +335,7 @@ resource "aws_instance" "nginx" {
 }
 
 resource "aws_instance" "wordpress" {
-  ami                    = var.ami
+  ami                    = "ami-0a7d80731ae1b2435"
   instance_type          = "t2.micro"
   subnet_id              = aws_subnet.private_app.id
   vpc_security_group_ids = [aws_security_group.private_app.id]
