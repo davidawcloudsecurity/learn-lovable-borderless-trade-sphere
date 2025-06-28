@@ -361,8 +361,10 @@ resource "aws_instance" "wordpress" {
   tags = {
     Name = "wordpress-instance"
   }
-  depends_on = [aws_nat_gateway.nat]
-  depends_on = [aws_instance.mysql]
+  depends_on = [
+      aws_nat_gateway.nat,
+      aws_instance.mysql
+  ]
 }
 
 resource "aws_instance" "mysql" {
