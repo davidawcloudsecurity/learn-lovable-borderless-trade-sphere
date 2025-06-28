@@ -223,7 +223,7 @@ resource "aws_security_group" "private_db" {
   name        = "allow_wordpress"
   description = "Allow HTTP inbound traffic within VPC"
   vpc_id      = aws_vpc.main.id
-
+/* Exclude because using api
   ingress {
     description = "HTTP from private subnet app tier"
     from_port   = 3306
@@ -232,7 +232,7 @@ resource "aws_security_group" "private_db" {
     #    cidr_blocks = [aws_security_group.public.id]
     security_groups = [aws_security_group.private_app.id]
   }
-/*
+
   ingress {
     description = "Setup to allow SSM"
     from_port   = 3001
