@@ -350,7 +350,7 @@ resource "aws_instance" "wordpress" {
               #!/bin/bash
               apt update -y
               curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -
-              sudo apt install -y nodejs
+              apt install -y nodejs
               cd
               git clone https://github.com/davidawcloudsecurity/learn-lovable-borderless-trade-sphere.git
               cd learn-lovable-borderless-trade-sphere/
@@ -374,6 +374,10 @@ resource "aws_instance" "mysql" {
               git clone https://github.com/davidawcloudsecurity/learn-lovable-borderless-trade-sphere.git
               cd learn-lovable-borderless-trade-sphere/
               apt update -y
+              curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -
+              apt-get install -y nodejs
+              apt install -y npm
+              npm install -y express cors
               apt install docker -y
               service docker start
               usermod -a -G docker ec2-user
