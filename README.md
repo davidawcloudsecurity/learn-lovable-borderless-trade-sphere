@@ -21,7 +21,12 @@ If you want to work locally using your own IDE, you can clone this repo and push
 The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
 
 Follow these steps:
-
+```
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
+nvm install 15.0.0
+node -e "console.log('Running Node.js ' + process.version)"
+nvm install-latest-npm
+```
 ```sh
 # Step 1: Clone the repository using the project's Git URL.
 git clone <YOUR_GIT_URL>
