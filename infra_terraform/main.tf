@@ -354,6 +354,7 @@ resource "aws_instance" "wordpress" {
               cd
               git clone https://github.com/davidawcloudsecurity/learn-lovable-borderless-trade-sphere.git
               cd learn-lovable-borderless-trade-sphere/
+              sed -i 's/localhost/${aws_instance.mysql.private_ip}/g' src/components/Header.tsx
               npm i;npm run dev
               EOF
 
@@ -373,11 +374,13 @@ resource "aws_instance" "mysql" {
               #!/bin/bash
               git clone https://github.com/davidawcloudsecurity/learn-lovable-borderless-trade-sphere.git
               cd learn-lovable-borderless-trade-sphere/
+              sed -i 's/localhost/${aws_instance.mysql.private_ip}/g' server.js
               apt update -y
               curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -
               apt-get install -y nodejs
               apt install -y npm
               npm install -y express cors
+              node server.js
               apt install docker -y
               service docker start
               usermod -a -G docker ec2-user
