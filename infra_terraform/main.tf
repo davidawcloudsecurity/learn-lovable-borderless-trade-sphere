@@ -55,7 +55,7 @@ resource "aws_subnet" "private_app" {
   vpc_id                  = aws_vpc.main.id
   cidr_block              = "10.0.3.0/24"
   availability_zone       = "${var.region}a"
-  map_public_ip_on_launch = true # temp for ssm
+  map_public_ip_on_launch = false # temp for ssm
 
   tags = {
     Name = "private-app-subnet"
@@ -66,7 +66,7 @@ resource "aws_subnet" "private_db" {
   vpc_id                  = aws_vpc.main.id
   cidr_block              = "10.0.4.0/24"
   availability_zone       = "${var.region}a"
-  map_public_ip_on_launch = true # temp for ssm
+  map_public_ip_on_launch = false # temp for ssm
 
   tags = {
     Name = "private-db-subnet"
@@ -326,7 +326,7 @@ resource "aws_lb" "example" {
   load_balancer_type = "application"
   security_groups    = [aws_security_group.public_facing.id]
   subnets            = [
-    aws_subnet.public_facing_1a.id
+    aws_subnet.public_facing_1a.id,
     aws_subnet.public_facing_1b.id
   ]
 
