@@ -308,6 +308,39 @@ resource "aws_iam_instance_profile" "ec2_ssm_profile" {
   role = aws_iam_role.ec2_ssm_role.name
 }
 
+# ALB
+resource "aws_lb" "example" {
+  name               = "example-alb"
+  internal           = false
+  load_balancer_type = "application"
+  security_groups    = [aws_security_group.public_facing.id]
+  subnets            = [aws_subnet.public_facing.id]
+
+  enable_deletion_protection = false
+
+  tags = {
+    Environment = "dev"
+  }
+}
+
+resource "aws_lb_target_group" "example" {
+  name     = "example-tg"
+  port     = 80
+  protocol = "HTTP"
+  vpc_id   = aws_vpc.main.id
+}
+
+resource "aws_lb_listener" "example" {
+  load_balancer_arn = aws_lb.example.arn
+  port              = 80
+  protocol          = "HTTP"
+
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.example.arn
+  }
+}
+
 # EC2 Instances
 resource "aws_instance" "nginx" {
   ami                    = var.ami
