@@ -29,20 +29,31 @@ resource "aws_vpc" "main" {
 }
 
 # Subnets
-resource "aws_subnet" "public_facing" {
+resource "aws_subnet" "public_facing_1a" {
   vpc_id                  = aws_vpc.main.id
   cidr_block              = "10.0.1.0/24"
   availability_zone       = "${var.region}a"
   map_public_ip_on_launch = true
 
   tags = {
-    Name = "public-subnet"
+    Name = "public-subnet_1a"
+  }
+}
+
+resource "aws_subnet" "public_facing_1b" {
+  vpc_id                  = aws_vpc.main.id
+  cidr_block              = "10.0.2.0/24"
+  availability_zone       = "${var.region}b"
+  map_public_ip_on_launch = true
+
+  tags = {
+    Name = "public-subnet_1b"
   }
 }
 
 resource "aws_subnet" "private_app" {
   vpc_id                  = aws_vpc.main.id
-  cidr_block              = "10.0.2.0/24"
+  cidr_block              = "10.0.3.0/24"
   availability_zone       = "${var.region}a"
   map_public_ip_on_launch = true # temp for ssm
 
@@ -53,7 +64,7 @@ resource "aws_subnet" "private_app" {
 
 resource "aws_subnet" "private_db" {
   vpc_id                  = aws_vpc.main.id
-  cidr_block              = "10.0.3.0/24"
+  cidr_block              = "10.0.4.0/24"
   availability_zone       = "${var.region}a"
   map_public_ip_on_launch = true # temp for ssm
 
@@ -80,7 +91,7 @@ resource "aws_eip" "nat_eip" {
 
 resource "aws_nat_gateway" "nat" {
   allocation_id = aws_eip.nat_eip.id
-  subnet_id     = aws_subnet.public_facing.id
+  subnet_id     = aws_subnet.public_facing_1a.id
 
   tags = {
     Name = "main-nat"
@@ -128,7 +139,7 @@ resource "aws_route_table" "private_db" {
 }
 
 resource "aws_route_table_association" "public_facing" {
-  subnet_id      = aws_subnet.public_facing.id
+  subnet_id      = aws_subnet.public_facing_1a.id
   route_table_id = aws_route_table.public_facing.id
 }
 
@@ -314,7 +325,10 @@ resource "aws_lb" "example" {
   internal           = false
   load_balancer_type = "application"
   security_groups    = [aws_security_group.public_facing.id]
-  subnets            = [aws_subnet.public_facing.id]
+  subnets            = [
+    aws_subnet.public_facing_1a.id
+    aws_subnet.public_facing_1b.id
+  ]
 
   enable_deletion_protection = false
 
@@ -345,7 +359,7 @@ resource "aws_lb_listener" "example" {
 resource "aws_instance" "nginx" {
   ami                    = var.ami
   instance_type          = "t2.micro"
-  subnet_id              = aws_subnet.public_facing.id
+  subnet_id              = aws_subnet.public_facing_1a.id
   vpc_security_group_ids = [aws_security_group.public_facing.id]
   iam_instance_profile   = aws_iam_instance_profile.ec2_ssm_profile.name
 
