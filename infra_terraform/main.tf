@@ -339,7 +339,7 @@ resource "aws_lb" "example" {
 
 resource "aws_lb_target_group" "frontend" {
   name     = "frontend-tg"
-  port     = 80
+  port     = 8080
   protocol = "HTTP"
   vpc_id   = aws_vpc.main.id
 }
