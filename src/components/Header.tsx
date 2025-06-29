@@ -1,6 +1,14 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
-import { ShoppingCart, Search, Globe, Menu, X } from 'lucide-react';
+import { ShoppingCart, Search, Globe, Menu, X, User, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useAuth } from '@/contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -8,6 +16,9 @@ const Header = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [suggestions, setSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
+
+  const { user, signOut, loading } = useAuth();
+  const navigate = useNavigate();
 
   const currencies = ['USD', 'EUR', 'GBP', 'JPY', 'CNY'];
 
@@ -54,7 +65,7 @@ const Header = () => {
     try {
       const res = await fetch(`/api/search?q=${encodeURIComponent(searchQuery)}&limit=20&offset=0`);
       const data = await res.json();
-      console.log('Search results:', data); // 💡 Replace with your state update
+      console.log('Search results:', data);
       setShowSuggestions(false);
     } catch (err) {
       console.error('Search error:', err);
@@ -75,12 +86,17 @@ const Header = () => {
     return () => document.removeEventListener('click', hide);
   }, []);
 
+  const handleSignOut = async () => {
+    await signOut();
+    navigate('/');
+  };
+
   return (
     <header className="bg-white shadow-md sticky top-0 z-50">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-2 cursor-pointer" onClick={() => navigate('/')}>
             <Globe className="h-8 w-8 text-blue-600" />
             <span className="text-2xl font-bold text-gray-900">GlobalTrade</span>
           </div>
@@ -135,6 +151,46 @@ const Header = () => {
               </span>
             </Button>
 
+            {/* User Account */}
+            {loading ? (
+              <div className="w-8 h-8 rounded-full bg-gray-200 animate-pulse"></div>
+            ) : user ? (
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="ghost" size="sm" className="flex items-center space-x-2">
+                    <User className="h-5 w-5" />
+                    <span className="hidden md:block">
+                      {user.user_metadata?.first_name || user.email?.split('@')[0]}
+                    </span>
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-48">
+                  <div className="space-y-2">
+                    <div className="px-2 py-1 text-sm text-gray-600">
+                      {user.email}
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleSignOut}
+                      className="w-full justify-start"
+                    >
+                      <LogOut className="h-4 w-4 mr-2" />
+                      Sign Out
+                    </Button>
+                  </div>
+                </PopoverContent>
+              </Popover>
+            ) : (
+              <Button
+                variant="default"
+                size="sm"
+                onClick={() => navigate('/auth')}
+              >
+                Sign In
+              </Button>
+            )}
+
             <Button
               variant="ghost"
               size="sm"
@@ -178,6 +234,16 @@ const Header = () => {
               <a href="#" className="block py-2 text-gray-600 hover:text-blue-600">Fashion</a>
               <a href="#" className="block py-2 text-gray-600 hover:text-blue-600">Home & Garden</a>
               <a href="#" className="block py-2 text-gray-600 hover:text-blue-600">Sports</a>
+              {!user && (
+                <Button
+                  variant="default"
+                  size="sm"
+                  onClick={() => navigate('/auth')}
+                  className="mt-4"
+                >
+                  Sign In
+                </Button>
+              )}
             </div>
           </div>
         )}
