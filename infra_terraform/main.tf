@@ -379,7 +379,7 @@ resource "aws_instance" "wordpress" {
               curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -
               apt install -y nodejs
               cd
-              git clone https://github.com/davidawcloudsecurity/learn-lovable-borderless-trade-sphere.git
+              git clone -b supabase_auth_main https://github.com/davidawcloudsecurity/learn-lovable-borderless-trade-sphere.git
               cd learn-lovable-borderless-trade-sphere/
               npm i;npm run dev
               EOF
@@ -402,7 +402,7 @@ resource "aws_instance" "mysql" {
 
   user_data = <<-EOF
               #!/bin/bash
-              git clone https://github.com/davidawcloudsecurity/learn-lovable-borderless-trade-sphere.git
+              git clone -b supabase_auth_main https://github.com/davidawcloudsecurity/learn-lovable-borderless-trade-sphere.git
               cd learn-lovable-borderless-trade-sphere/
               sed -i "s/localhost/$(hostname -I | awk '{print $1}')/g" server.js
               apt update -y
