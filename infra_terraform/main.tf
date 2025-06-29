@@ -337,9 +337,16 @@ resource "aws_lb" "example" {
   }
 }
 
-resource "aws_lb_target_group" "example" {
-  name     = "example-tg"
+resource "aws_lb_target_group" "frontend" {
+  name     = "frontend-tg"
   port     = 80
+  protocol = "HTTP"
+  vpc_id   = aws_vpc.main.id
+}
+
+resource "aws_lb_target_group" "backend" {
+  name     = "backend-tg"
+  port     = 3001
   protocol = "HTTP"
   vpc_id   = aws_vpc.main.id
 }
@@ -351,7 +358,23 @@ resource "aws_lb_listener" "example" {
 
   default_action {
     type             = "forward"
-    target_group_arn = aws_lb_target_group.example.arn
+    target_group_arn = aws_lb_target_group.frontend.arn
+  }
+}
+
+resource "aws_lb_listener_rule" "api_rule" {
+  listener_arn = aws_lb_listener.example.arn
+  priority     = 10
+
+  action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.backend.arn
+  }
+
+  condition {
+    path_pattern {
+      values = ["/api*"]
+    }
   }
 }
 
