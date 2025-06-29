@@ -160,7 +160,7 @@ const Header = () => {
                   <Button variant="ghost" size="sm" className="flex items-center space-x-2">
                     <User className="h-5 w-5" />
                     <span className="hidden md:block">
-                      {user.user_metadata?.first_name || user.email?.split('@')[0]}
+                      {user.first_name || user.email?.split('@')[0]}
                     </span>
                   </Button>
                 </PopoverTrigger>
