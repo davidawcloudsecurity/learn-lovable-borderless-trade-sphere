@@ -397,7 +397,7 @@ resource "aws_launch_template" "wordpress" {
     cd learn-lovable-borderless-trade-sphere/
     npm install
     npm run build
-    npm start
+    npm run preview
   EOF
   )
 }
