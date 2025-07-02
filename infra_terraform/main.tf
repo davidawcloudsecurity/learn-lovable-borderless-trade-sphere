@@ -378,6 +378,111 @@ resource "aws_lb_listener_rule" "api_rule" {
   }
 }
 
+# WORDPRESS LAUNCH TEMPLATE
+resource "aws_launch_template" "wordpress" {
+  name_prefix   = "wordpress-"
+  image_id      = var.ami_ubuntu
+  instance_type = "t2.micro"
+  vpc_security_group_ids = [aws_security_group.private_app.id]
+  iam_instance_profile {
+    name = aws_iam_instance_profile.ec2_ssm_profile.name
+  }
+  user_data = base64encode(<<-EOF
+    #!/bin/bash
+    apt update -y
+    curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -
+    apt install -y nodejs
+    cd
+    git clone -b supabase_auth_main https://github.com/davidawcloudsecurity/learn-lovable-borderless-trade-sphere.git
+    cd learn-lovable-borderless-trade-sphere/
+    npm i
+    npm run dev
+  EOF
+  )
+}
+
+# MYSQL LAUNCH TEMPLATE
+resource "aws_launch_template" "mysql" {
+  name_prefix   = "mysql-"
+  image_id      = var.ami_ubuntu
+  instance_type = "t2.micro"
+  vpc_security_group_ids = [aws_security_group.private_db.id]
+  iam_instance_profile {
+    name = aws_iam_instance_profile.ec2_ssm_profile.name
+  }
+  user_data = base64encode(<<-EOF
+    #!/bin/bash
+    apt update -y
+    apt install -y docker.io
+    systemctl start docker
+    git clone -b supabase_auth_main https://github.com/davidawcloudsecurity/learn-lovable-borderless-trade-sphere.git
+    cd learn-lovable-borderless-trade-sphere/
+    sed -i "s/localhost/$(hostname -I | awk '{print $1}')/g" server.js
+    curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -
+    apt-get install -y nodejs
+    npm install -y express cors
+    node server.js &
+    docker run -d -e MYSQL_ROOT_PASSWORD=rootpassword \
+               -e MYSQL_DATABASE=wordpress \
+               -e MYSQL_USER=wordpress \
+               -e MYSQL_PASSWORD=wordpress \
+               -p 3306:3306 mysql:5.7
+  EOF
+  )
+}
+
+# WORDPRESS AUTOSCALING GROUP
+resource "aws_autoscaling_group" "wordpress" {
+  name                = "wordpress-asg"
+  min_size            = 2
+  max_size            = 4
+  desired_capacity    = 2
+  vpc_zone_identifier = [aws_subnet.private_app.id]
+  health_check_type   = "EC2"
+  target_group_arns   = [aws_lb_target_group.frontend.arn]
+
+  launch_template {
+    id      = aws_launch_template.wordpress.id
+    version = "$Latest"
+  }
+
+  tag {
+    key                 = "Name"
+    value               = "wordpress-asg-instance"
+    propagate_at_launch = true
+  }
+
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+
+# MYSQL AUTOSCALING GROUP
+resource "aws_autoscaling_group" "mysql" {
+  name                = "mysql-asg"
+  min_size            = 1
+  max_size            = 2
+  desired_capacity    = 1
+  vpc_zone_identifier = [aws_subnet.private_db.id]
+  health_check_type   = "EC2"
+  target_group_arns   = [aws_lb_target_group.backend.arn]
+
+  launch_template {
+    id      = aws_launch_template.mysql.id
+    version = "$Latest"
+  }
+
+  tag {
+    key                 = "Name"
+    value               = "mysql-asg-instance"
+    propagate_at_launch = true
+  }
+
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+
 # EC2 Instances
 resource "aws_instance" "nginx" {
   ami                    = var.ami
