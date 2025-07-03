@@ -1,40 +1,76 @@
-import express from 'express';
-import cors from 'cors';
+
+const express = require('express');
+const path = require('path');
+const cors = require('cors');
 
 const app = express();
-const PORT = 3001;
+const PORT = process.env.PORT || 3001;
 
-app.use(cors()); // Allow requests from Vite dev server
+// Middleware
+app.use(cors());
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-// Suggestion endpoint
-app.get('/api/search/suggestions', (req, res) => {
-  const q = req.query.q?.toLowerCase() || '';
-  const allSuggestions = ['laptop', 'lamp', 'laser printer', 'luggage', 'light bulb', 'lantern'];
-  const filtered = allSuggestions.filter(item => item.includes(q));
-  res.json({ suggestions: filtered });
+// Health check endpoint for load balancer
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'healthy', timestamp: new Date().toISOString() });
 });
 
-// Search endpoint
+// API routes
+app.get('/api/test', (req, res) => {
+  res.json({ message: 'API is working', instance: process.pid });
+});
+
+// Search API endpoints
+app.get('/api/search/suggestions', (req, res) => {
+  const query = req.query.q;
+  const suggestions = [
+    'Electronics',
+    'Fashion',
+    'Home & Garden',
+    'Sports',
+    'Books',
+    'Toys',
+    'Automotive',
+    'Health & Beauty'
+  ].filter(item => item.toLowerCase().includes(query?.toLowerCase() || ''));
+  
+  res.json({ suggestions });
+});
+
 app.get('/api/search', (req, res) => {
-  const q = req.query.q?.toLowerCase() || '';
-  const products = [
-    { id: 1, name: 'MacBook Pro', price: 2500 },
-    { id: 2, name: 'Lamp Shade', price: 25 },
-    { id: 3, name: 'Laser Printer', price: 150 },
-  ];
-  const filtered = products.filter(item => item.name.toLowerCase().includes(q));
+  const { q, limit = 20, offset = 0 } = req.query;
   res.json({
-    success: true,
-    data: filtered,
-    pagination: {
-      limit: 20,
-      offset: 0,
-      total: filtered.length,
-    },
+    query: q,
+    results: [],
+    total: 0,
+    limit: parseInt(limit),
+    offset: parseInt(offset)
   });
 });
 
-app.listen(PORT, () => {
-  console.log(`✅ API server is running at http://localhost:${PORT}`);
+// Serve static files from the dist directory
+app.use(express.static(path.join(__dirname, 'dist')));
+
+// Handle React Router - serve index.html for all non-API routes
+app.get('*', (req, res) => {
+  // Don't try to server-side render React components
+  // Just serve the static HTML file
+  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+});
+
+// Bind to all interfaces (0.0.0.0) not just localhost
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`✅ Server running on http://0.0.0.0:${PORT} (PID: ${process.pid})`);
+});
+
+// Graceful shutdown
+process.on('SIGTERM', () => {
+  console.log('SIGTERM received, shutting down gracefully');
+  process.exit(0);
+});
+
+process.on('SIGINT', () => {
+  console.log('SIGINT received, shutting down gracefully');
+  process.exit(0);
 });
