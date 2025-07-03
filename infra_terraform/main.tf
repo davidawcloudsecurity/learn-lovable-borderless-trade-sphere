@@ -395,9 +395,8 @@ resource "aws_launch_template" "wordpress" {
     cd
     git clone https://github.com/davidawcloudsecurity/learn-lovable-borderless-trade-sphere.git
     cd learn-lovable-borderless-trade-sphere/
-    npm install
-    npm run build
-    npm run preview
+    npm i
+    npm run dev
   EOF
   )
 }
