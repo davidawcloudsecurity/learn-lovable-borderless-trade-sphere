@@ -601,7 +601,8 @@ resource "aws_instance" "mysql" {
   }
   depends_on = [aws_nat_gateway.nat]
 }
-*/
+
 output "seeds" {
   value = [aws_instance.nginx.private_ip, aws_instance.wordpress.private_ip, aws_instance.mysql.private_ip]
 }
+*/
