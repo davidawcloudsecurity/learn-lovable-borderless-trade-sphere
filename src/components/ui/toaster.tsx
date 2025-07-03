@@ -1,7 +1,3 @@
-
-"use client"
-
-import { useEffect, useState } from "react"
 import { useToast } from "@/hooks/use-toast"
 import {
   Toast,
@@ -13,16 +9,7 @@ import {
 } from "@/components/ui/toast"
 
 export function Toaster() {
-  const [isMounted, setIsMounted] = useState(false)
   const { toasts } = useToast()
-
-  useEffect(() => {
-    setIsMounted(true)
-  }, [])
-
-  if (!isMounted) {
-    return null
-  }
 
   return (
     <ToastProvider>
