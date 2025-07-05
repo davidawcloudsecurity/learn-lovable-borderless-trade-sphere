@@ -349,16 +349,6 @@ resource "aws_lb_target_group" "backend" {
   port     = 3001
   protocol = "HTTP"
   vpc_id   = aws_vpc.main.id
-  health_check {
-    path                = "/api/search"
-    protocol            = "HTTP"
-    port                = "traffic-port"
-    healthy_threshold   = 2
-    unhealthy_threshold = 2
-    timeout             = 5
-    interval            = 30
-    matcher             = "200-399"
-  }
 }
 
 resource "aws_lb_listener" "example" {
@@ -405,7 +395,7 @@ resource "aws_launch_template" "wordpress" {
     cd
     git clone -b supabase_auth_main https://github.com/davidawcloudsecurity/learn-lovable-borderless-trade-sphere.git
     cd learn-lovable-borderless-trade-sphere/
-    npm i;npm run build; npm install -g serve; serve -s dist -l 8080
+    npm i;npm run dev
   EOF
   )
 }
@@ -491,7 +481,7 @@ resource "aws_autoscaling_group" "mysql" {
     create_before_destroy = true
   }
 }
-/*
+
 # EC2 Instances
 resource "aws_instance" "nginx" {
   ami                    = var.ami
@@ -614,4 +604,3 @@ resource "aws_instance" "mysql" {
 output "seeds" {
   value = [aws_instance.nginx.private_ip, aws_instance.wordpress.private_ip, aws_instance.mysql.private_ip]
 }
-*/
