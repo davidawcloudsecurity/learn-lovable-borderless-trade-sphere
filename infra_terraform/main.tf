@@ -349,6 +349,16 @@ resource "aws_lb_target_group" "backend" {
   port     = 3001
   protocol = "HTTP"
   vpc_id   = aws_vpc.main.id
+  health_check {
+    path                = "/api/search"
+    protocol            = "HTTP"
+    port                = "traffic-port"
+    healthy_threshold   = 2
+    unhealthy_threshold = 2
+    timeout             = 5
+    interval            = 30
+    matcher             = "200-399"
+  }
 }
 
 resource "aws_lb_listener" "example" {
