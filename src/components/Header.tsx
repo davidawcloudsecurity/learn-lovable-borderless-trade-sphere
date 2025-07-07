@@ -62,21 +62,15 @@ const Header = () => {
     e.preventDefault();
     if (!searchQuery.trim()) return;
 
-    try {
-      const res = await fetch(`/api/search?q=${encodeURIComponent(searchQuery)}&limit=20&offset=0`);
-      const data = await res.json();
-      console.log('Search results:', data);
-      setShowSuggestions(false);
-    } catch (err) {
-      console.error('Search error:', err);
-    }
+    setShowSuggestions(false);
+    navigate(`/search?q=${encodeURIComponent(searchQuery)}`);
   };
 
   // Suggestion click
   const handleSuggestionClick = (s) => {
     setSearchQuery(s);
     setShowSuggestions(false);
-    handleSearchSubmit({ preventDefault: () => {} });
+    navigate(`/search?q=${encodeURIComponent(s)}`);
   };
 
   // Hide on outside click
