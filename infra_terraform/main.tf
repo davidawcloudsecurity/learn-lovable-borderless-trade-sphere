@@ -29,22 +29,33 @@ resource "aws_vpc" "main" {
 }
 
 # Subnets
-resource "aws_subnet" "public_facing" {
+resource "aws_subnet" "public_facing_1a" {
   vpc_id                  = aws_vpc.main.id
   cidr_block              = "10.0.1.0/24"
   availability_zone       = "${var.region}a"
   map_public_ip_on_launch = true
 
   tags = {
-    Name = "public-subnet"
+    Name = "public-subnet_1a"
+  }
+}
+
+resource "aws_subnet" "public_facing_1b" {
+  vpc_id                  = aws_vpc.main.id
+  cidr_block              = "10.0.2.0/24"
+  availability_zone       = "${var.region}b"
+  map_public_ip_on_launch = true
+
+  tags = {
+    Name = "public-subnet_1b"
   }
 }
 
 resource "aws_subnet" "private_app" {
   vpc_id                  = aws_vpc.main.id
-  cidr_block              = "10.0.2.0/24"
+  cidr_block              = "10.0.3.0/24"
   availability_zone       = "${var.region}a"
-  map_public_ip_on_launch = true # temp for ssm
+  map_public_ip_on_launch = false # temp for ssm
 
   tags = {
     Name = "private-app-subnet"
@@ -53,9 +64,9 @@ resource "aws_subnet" "private_app" {
 
 resource "aws_subnet" "private_db" {
   vpc_id                  = aws_vpc.main.id
-  cidr_block              = "10.0.3.0/24"
+  cidr_block              = "10.0.4.0/24"
   availability_zone       = "${var.region}a"
-  map_public_ip_on_launch = true # temp for ssm
+  map_public_ip_on_launch = false # temp for ssm
 
   tags = {
     Name = "private-db-subnet"
@@ -80,7 +91,7 @@ resource "aws_eip" "nat_eip" {
 
 resource "aws_nat_gateway" "nat" {
   allocation_id = aws_eip.nat_eip.id
-  subnet_id     = aws_subnet.public_facing.id
+  subnet_id     = aws_subnet.public_facing_1a.id
 
   tags = {
     Name = "main-nat"
@@ -128,7 +139,7 @@ resource "aws_route_table" "private_db" {
 }
 
 resource "aws_route_table_association" "public_facing" {
-  subnet_id      = aws_subnet.public_facing.id
+  subnet_id      = aws_subnet.public_facing_1a.id
   route_table_id = aws_route_table.public_facing.id
 }
 
@@ -308,11 +319,174 @@ resource "aws_iam_instance_profile" "ec2_ssm_profile" {
   role = aws_iam_role.ec2_ssm_role.name
 }
 
+# ALB
+resource "aws_lb" "example" {
+  name               = "example-alb"
+  internal           = false
+  load_balancer_type = "application"
+  security_groups    = [aws_security_group.public_facing.id]
+  subnets            = [
+    aws_subnet.public_facing_1a.id,
+    aws_subnet.public_facing_1b.id
+  ]
+
+  enable_deletion_protection = false
+
+  tags = {
+    Environment = "dev"
+  }
+}
+
+resource "aws_lb_target_group" "frontend" {
+  name     = "frontend-tg"
+  port     = 8080
+  protocol = "HTTP"
+  vpc_id   = aws_vpc.main.id
+}
+
+resource "aws_lb_target_group" "backend" {
+  name     = "backend-tg"
+  port     = 3001
+  protocol = "HTTP"
+  vpc_id   = aws_vpc.main.id
+}
+
+resource "aws_lb_listener" "example" {
+  load_balancer_arn = aws_lb.example.arn
+  port              = 80
+  protocol          = "HTTP"
+
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.frontend.arn
+  }
+}
+
+resource "aws_lb_listener_rule" "api_rule" {
+  listener_arn = aws_lb_listener.example.arn
+  priority     = 10
+
+  action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.backend.arn
+  }
+
+  condition {
+    path_pattern {
+      values = ["/api*"]
+    }
+  }
+}
+
+# WORDPRESS LAUNCH TEMPLATE
+resource "aws_launch_template" "wordpress" {
+  name_prefix   = "wordpress-"
+  image_id      = var.ami_ubuntu
+  instance_type = "t2.micro"
+  vpc_security_group_ids = [aws_security_group.private_app.id]
+  iam_instance_profile {
+    name = aws_iam_instance_profile.ec2_ssm_profile.name
+  }
+  user_data = base64encode(<<-EOF
+    #!/bin/bash
+    apt update -y
+    curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -
+    apt install -y nodejs
+    cd
+    git clone -b supabase_auth_main https://github.com/davidawcloudsecurity/learn-lovable-borderless-trade-sphere.git
+    cd learn-lovable-borderless-trade-sphere/
+    npm i;npm run build;npm install -g serve;serve -s dist -l 8080
+  EOF
+  )
+}
+
+# MYSQL LAUNCH TEMPLATE
+resource "aws_launch_template" "mysql" {
+  name_prefix   = "mysql-"
+  image_id      = var.ami_ubuntu
+  instance_type = "t2.micro"
+  vpc_security_group_ids = [aws_security_group.private_db.id]
+  iam_instance_profile {
+    name = aws_iam_instance_profile.ec2_ssm_profile.name
+  }
+  user_data = base64encode(<<-EOF
+    #!/bin/bash
+    apt update -y
+    apt install -y docker.io
+    systemctl start docker
+    git clone -b supabase_auth_main https://github.com/davidawcloudsecurity/learn-lovable-borderless-trade-sphere.git
+    cd learn-lovable-borderless-trade-sphere/
+    sed -i "s/localhost/$(hostname -I | awk '{print $1}')/g" server.js
+    curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -
+    apt-get install -y nodejs
+    npm install -y express cors
+    node server.js &
+    docker run -d -e MYSQL_ROOT_PASSWORD=rootpassword \
+               -e MYSQL_DATABASE=wordpress \
+               -e MYSQL_USER=wordpress \
+               -e MYSQL_PASSWORD=wordpress \
+               -p 3306:3306 mysql:5.7
+  EOF
+  )
+}
+
+# WORDPRESS AUTOSCALING GROUP
+resource "aws_autoscaling_group" "wordpress" {
+  name                = "wordpress-asg"
+  min_size            = 2
+  max_size            = 4
+  desired_capacity    = 2
+  vpc_zone_identifier = [aws_subnet.private_app.id]
+  health_check_type   = "EC2"
+  target_group_arns   = [aws_lb_target_group.frontend.arn]
+
+  launch_template {
+    id      = aws_launch_template.wordpress.id
+    version = "$Latest"
+  }
+
+  tag {
+    key                 = "Name"
+    value               = "wordpress-asg-instance"
+    propagate_at_launch = true
+  }
+
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+
+# MYSQL AUTOSCALING GROUP
+resource "aws_autoscaling_group" "mysql" {
+  name                = "mysql-asg"
+  min_size            = 1
+  max_size            = 2
+  desired_capacity    = 1
+  vpc_zone_identifier = [aws_subnet.private_db.id]
+  health_check_type   = "EC2"
+  target_group_arns   = [aws_lb_target_group.backend.arn]
+
+  launch_template {
+    id      = aws_launch_template.mysql.id
+    version = "$Latest"
+  }
+
+  tag {
+    key                 = "Name"
+    value               = "mysql-asg-instance"
+    propagate_at_launch = true
+  }
+
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+/*
 # EC2 Instances
 resource "aws_instance" "nginx" {
   ami                    = var.ami
   instance_type          = "t2.micro"
-  subnet_id              = aws_subnet.public_facing.id
+  subnet_id              = aws_subnet.public_facing_1a.id
   vpc_security_group_ids = [aws_security_group.public_facing.id]
   iam_instance_profile   = aws_iam_instance_profile.ec2_ssm_profile.name
 
@@ -379,7 +553,7 @@ resource "aws_instance" "wordpress" {
               curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -
               apt install -y nodejs
               cd
-              git clone https://github.com/davidawcloudsecurity/learn-lovable-borderless-trade-sphere.git
+              git clone -b supabase_auth_main https://github.com/davidawcloudsecurity/learn-lovable-borderless-trade-sphere.git
               cd learn-lovable-borderless-trade-sphere/
               npm i;npm run dev
               EOF
@@ -402,7 +576,7 @@ resource "aws_instance" "mysql" {
 
   user_data = <<-EOF
               #!/bin/bash
-              git clone https://github.com/davidawcloudsecurity/learn-lovable-borderless-trade-sphere.git
+              git clone -b supabase_auth_main https://github.com/davidawcloudsecurity/learn-lovable-borderless-trade-sphere.git
               cd learn-lovable-borderless-trade-sphere/
               sed -i "s/localhost/$(hostname -I | awk '{print $1}')/g" server.js
               apt update -y
@@ -430,3 +604,4 @@ resource "aws_instance" "mysql" {
 output "seeds" {
   value = [aws_instance.nginx.private_ip, aws_instance.wordpress.private_ip, aws_instance.mysql.private_ip]
 }
+*/
