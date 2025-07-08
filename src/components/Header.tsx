@@ -62,21 +62,15 @@ const Header = () => {
     e.preventDefault();
     if (!searchQuery.trim()) return;
 
-    try {
-      const res = await fetch(`/api/search?q=${encodeURIComponent(searchQuery)}&limit=20&offset=0`);
-      const data = await res.json();
-      console.log('Search results:', data);
-      setShowSuggestions(false);
-    } catch (err) {
-      console.error('Search error:', err);
-    }
+    setShowSuggestions(false);
+    navigate(`/search?q=${encodeURIComponent(searchQuery)}`);
   };
 
   // Suggestion click
   const handleSuggestionClick = (s) => {
     setSearchQuery(s);
     setShowSuggestions(false);
-    handleSearchSubmit({ preventDefault: () => {} });
+    navigate(`/search?q=${encodeURIComponent(s)}`);
   };
 
   // Hide on outside click
@@ -160,7 +154,7 @@ const Header = () => {
                   <Button variant="ghost" size="sm" className="flex items-center space-x-2">
                     <User className="h-5 w-5" />
                     <span className="hidden md:block">
-                      {user.user_metadata?.first_name || user.email?.split('@')[0]}
+                      {user.first_name || user.email?.split('@')[0]}
                     </span>
                   </Button>
                 </PopoverTrigger>
