@@ -549,7 +549,7 @@ resource "aws_instance" "nginx" {
       aws_instance.mysql
   ]
 }
-
+*/
 resource "aws_instance" "wordpress" {
   ami                    = var.ami_ubuntu
   instance_type          = "t2.micro"
@@ -576,7 +576,7 @@ resource "aws_instance" "wordpress" {
       aws_instance.mysql
   ]
 }
-
+/*
 resource "aws_instance" "mysql" {
   ami                    = var.ami_ubuntu
   instance_type          = "t2.micro"
