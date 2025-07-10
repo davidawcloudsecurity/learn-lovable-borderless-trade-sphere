@@ -13,6 +13,11 @@ variable "ami_ubuntu" {
   default     = "ami-0a7d80731ae1b2435" # ubuntu-jammy-22.04
 }
 
+variable "ami_windows2019"
+  description = "windows2019 AMI ID"
+  default     = "ami-0ed9f8d63c9e8b95a"
+}
+
 # Data sources for existing infrastructure
 data "aws_vpc" "existing" {
   id = "vpc-0b3556a25e5d65182"
@@ -239,21 +244,52 @@ resource "aws_lb_listener_rule" "api_rule" {
 # WORDPRESS LAUNCH TEMPLATE
 resource "aws_launch_template" "wordpress" {
   name_prefix   = "wordpress-"
-  image_id      = var.ami_ubuntu
+  image_id      = var.ami_windows2019
   instance_type = "t2.micro"
   vpc_security_group_ids = [aws_security_group.private_app.id]
   iam_instance_profile {
     name = aws_iam_instance_profile.ec2_ssm_profile.name
   }
   user_data = base64encode(<<-EOF
-    #!/bin/bash
-    apt update -y
-    curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -
-    apt install -y nodejs
-    cd
-    git clone -b supabase_auth_main https://github.com/davidawcloudsecurity/learn-lovable-borderless-trade-sphere.git
-    cd learn-lovable-borderless-trade-sphere/
-    npm i;npm run build;npm install -g serve;serve -s dist -l 8080
+# Prerequisite: AWS CLI must be installed and configured on the machine running this script
+
+# --- Static domain name (used only for joining) ---
+$domainName = "corp.davidakc.com"
+
+# --- Fetch domain credentials from AWS SSM Parameter Store ---
+Write-Host "Fetching domain credentials from SSM..."
+
+$domainUser="corp\Admin"
+$domainPass="Letmein2021!"
+
+if (-not $domainUser -or -not $domainPass) {
+    Write-Error "? Failed to retrieve domain credentials from SSM."
+    exit 1
+}
+
+# Convert password to secure string and create credential object
+$securePassword = ConvertTo-SecureString $domainPass -AsPlainText -Force
+$cred = New-Object System.Management.Automation.PSCredential ($domainUser, $securePassword)
+
+# --- Generate random hostname between 90 and 100 ---
+$randomNumber = Get-Random -Minimum 90 -Maximum 101
+$newHostname = "GCCBKCAPP$randomNumber"
+
+Write-Host "?? Setting hostname to $newHostname"
+Rename-Computer -NewName $newHostname -Force -Restart:$false
+
+# --- Join domain using correct user format ---
+Write-Host "?? Joining domain $domainName using user $domainUser..."
+
+Add-Computer -DomainName $domainName -Credential $cred -Force -Options JoinWithNewName,AccountCreate
+
+if ($?) {
+    Write-Host "? Successfully joined the domain. Restarting..."
+    Restart-Computer -Force
+} else {
+    Write-Error "? Failed to join the domain."
+}
+
   EOF
   )
 }
