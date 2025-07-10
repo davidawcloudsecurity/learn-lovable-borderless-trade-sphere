@@ -13,7 +13,7 @@ variable "ami_ubuntu" {
   default     = "ami-0a7d80731ae1b2435" # ubuntu-jammy-22.04
 }
 
-variable "ami_windows2019"
+variable "ami_windows2019" {
   description = "windows2019 AMI ID"
   default     = "ami-0ed9f8d63c9e8b95a"
 }
