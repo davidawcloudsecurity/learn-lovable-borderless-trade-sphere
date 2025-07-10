@@ -13,6 +13,15 @@ variable "ami_ubuntu" {
   default     = "ami-0a7d80731ae1b2435" # ubuntu-jammy-22.04
 }
 
+data "aws_vpc" "existing" {
+  id = "vpc-0b3556a25e5d65182"
+}
+
+data "aws_subnet" "wordpress" {
+  id = "subnet-06f8090a56fb14713"
+}
+
+
 provider "aws" {
   region  = var.region
 }
@@ -491,7 +500,7 @@ resource "aws_autoscaling_group" "mysql" {
     create_before_destroy = true
   }
 }
-
+/*
 # EC2 Instances
 resource "aws_instance" "nginx" {
   ami                    = var.ami
@@ -613,3 +622,4 @@ resource "aws_instance" "mysql" {
 output "seeds" {
   value = [aws_instance.nginx.private_ip, aws_instance.wordpress.private_ip, aws_instance.mysql.private_ip]
 }
+*/
