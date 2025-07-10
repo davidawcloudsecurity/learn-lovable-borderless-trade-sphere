@@ -251,45 +251,59 @@ resource "aws_launch_template" "wordpress" {
     name = aws_iam_instance_profile.ec2_ssm_profile.name
   }
   user_data = base64encode(<<-EOF
-# Prerequisite: AWS CLI must be installed and configured on the machine running this script
+<powershell>
+# Set error action
+$ErrorActionPreference = "Stop"
 
-# --- Static domain name (used only for joining) ---
-$domainName = "corp.davidakc.com"
+# --- CONFIGURATION ---
+$domainName = "corp.example.com"
+$ssmUserParam = "/windows/domain/user"
+$ssmPassParam = "/windows/domain/pass"
 
-# --- Fetch domain credentials from AWS SSM Parameter Store ---
-Write-Host "Fetching domain credentials from SSM..."
+# --- Install AWS Tools for PowerShell if needed ---
+if (-not (Get-Module -ListAvailable -Name 'AWSPowerShell')) {
+    Write-Output "Installing AWS Tools for PowerShell..."
+    Install-Package -Name AWSPowerShell -Force -Scope AllUsers
+    Import-Module AWSPowerShell
+}
 
-$domainUser="corp\Admin"
-$domainPass="Letmein2021!"
-
-if (-not $domainUser -or -not $domainPass) {
-    Write-Error "? Failed to retrieve domain credentials from SSM."
+# --- Fetch domain credentials from SSM Parameter Store ---
+Write-Output "Fetching domain credentials from AWS SSM Parameter Store..."
+try {
+    $domainUser = (Get-SSMParameter -Name $ssmUserParam -WithDecryption $true).Value
+    $domainPass = (Get-SSMParameter -Name $ssmPassParam -WithDecryption $true).Value
+} catch {
+    Write-Output "ERROR: Failed to retrieve domain credentials from SSM."
     exit 1
 }
 
-# Convert password to secure string and create credential object
+if (-not $domainUser -or -not $domainPass) {
+    Write-Output "ERROR: Domain credentials are empty."
+    exit 1
+}
+
+# --- Prepare credentials object ---
 $securePassword = ConvertTo-SecureString $domainPass -AsPlainText -Force
 $cred = New-Object System.Management.Automation.PSCredential ($domainUser, $securePassword)
 
-# --- Generate random hostname between 90 and 100 ---
+# --- Generate random hostname ---
 $randomNumber = Get-Random -Minimum 90 -Maximum 101
-$newHostname = "GCCBKCAPP$randomNumber"
+$newHostname = "example$randomNumber"
 
-Write-Host "?? Setting hostname to $newHostname"
+Write-Output "Setting hostname to $newHostname..."
 Rename-Computer -NewName $newHostname -Force -Restart:$false
 
-# --- Join domain using correct user format ---
-Write-Host "?? Joining domain $domainName using user $domainUser..."
-
-Add-Computer -DomainName $domainName -Credential $cred -Force -Options JoinWithNewName,AccountCreate
-
-if ($?) {
-    Write-Host "? Successfully joined the domain. Restarting..."
+# --- Join domain ---
+Write-Output "Joining domain $domainName as $domainUser..."
+try {
+    Add-Computer -DomainName $domainName -Credential $cred -Force -Options JoinWithNewName,AccountCreate
+    Write-Output "Successfully joined the domain. Restarting..."
     Restart-Computer -Force
-} else {
-    Write-Error "? Failed to join the domain."
+} catch {
+    Write-Output "ERROR: Failed to join the domain. $_"
+    exit 2
 }
-
+</powershell>
   EOF
   )
 }
