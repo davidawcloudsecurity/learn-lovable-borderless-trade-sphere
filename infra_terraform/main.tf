@@ -13,6 +13,7 @@ variable "ami_ubuntu" {
   default     = "ami-0a7d80731ae1b2435" # ubuntu-jammy-22.04
 }
 
+# Data sources for existing infrastructure
 data "aws_vpc" "existing" {
   id = "vpc-0b3556a25e5d65182"
 }
@@ -29,147 +30,11 @@ provider "aws" {
   region  = var.region
 }
 
-# VPC
-resource "aws_vpc" "main" {
-  cidr_block           = "10.0.0.0/16"
-  enable_dns_hostnames = true
-  enable_dns_support   = true
-
-  tags = {
-    Name = "main-vpc"
-  }
-}
-
-# Subnets
-resource "aws_subnet" "public_facing_1a" {
-  vpc_id                  = aws_vpc.main.id
-  cidr_block              = "10.0.1.0/24"
-  availability_zone       = "${var.region}a"
-  map_public_ip_on_launch = true
-
-  tags = {
-    Name = "public-subnet_1a"
-  }
-}
-
-resource "aws_subnet" "public_facing_1b" {
-  vpc_id                  = aws_vpc.main.id
-  cidr_block              = "10.0.2.0/24"
-  availability_zone       = "${var.region}b"
-  map_public_ip_on_launch = true
-
-  tags = {
-    Name = "public-subnet_1b"
-  }
-}
-
-resource "aws_subnet" "private_app" {
-  vpc_id                  = aws_vpc.main.id
-  cidr_block              = "10.0.3.0/24"
-  availability_zone       = "${var.region}a"
-  map_public_ip_on_launch = false # temp for ssm
-
-  tags = {
-    Name = "private-app-subnet"
-  }
-}
-
-resource "aws_subnet" "private_db" {
-  vpc_id                  = aws_vpc.main.id
-  cidr_block              = "10.0.4.0/24"
-  availability_zone       = "${var.region}a"
-  map_public_ip_on_launch = false # temp for ssm
-
-  tags = {
-    Name = "private-db-subnet"
-  }
-}
-
-# Internet Gateway
-resource "aws_internet_gateway" "igw" {
-  vpc_id = aws_vpc.main.id
-
-  tags = {
-    Name = "main-igw"
-  }
-}
-
-
-# NAT Gateway
-resource "aws_eip" "nat_eip" {
-  domain     = "vpc"
-  depends_on = [aws_internet_gateway.igw]
-}
-
-resource "aws_nat_gateway" "nat" {
-  allocation_id = aws_eip.nat_eip.id
-  subnet_id     = aws_subnet.public_facing_1a.id
-
-  tags = {
-    Name = "main-nat"
-  }
-}
-
-# Route Tables
-resource "aws_route_table" "public_facing" {
-  vpc_id = aws_vpc.main.id
-
-  route {
-    cidr_block = "0.0.0.0/0"
-    gateway_id = aws_internet_gateway.igw.id
-  }
-
-  tags = {
-    Name = "public-facing-route-table"
-  }
-}
-
-resource "aws_route_table" "private_app" {
-  vpc_id = aws_vpc.main.id
-
-  route {
-    cidr_block     = "0.0.0.0/0"
-    nat_gateway_id = aws_nat_gateway.nat.id
-  }
-
-  tags = {
-    Name = "private-app-route-table"
-  }
-}
-
-resource "aws_route_table" "private_db" {
-  vpc_id = aws_vpc.main.id
-
-  route {
-    cidr_block     = "0.0.0.0/0"
-    nat_gateway_id = aws_nat_gateway.nat.id
-  }
-
-  tags = {
-    Name = "private-db-route-table"
-  }
-}
-
-resource "aws_route_table_association" "public_facing" {
-  subnet_id      = aws_subnet.public_facing_1a.id
-  route_table_id = aws_route_table.public_facing.id
-}
-
-resource "aws_route_table_association" "private_app" {
-  subnet_id      = aws_subnet.private_app.id
-  route_table_id = aws_route_table.private_app.id
-}
-
-resource "aws_route_table_association" "private_db" {
-  subnet_id      = aws_subnet.private_db.id
-  route_table_id = aws_route_table.private_db.id
-}
-
-# Security Groups
+# Security Groups - using existing VPC
 resource "aws_security_group" "public_facing" {
   name        = "allow_http_ssh"
   description = "Allow HTTP and SSH inbound traffic"
-  vpc_id      = aws_vpc.main.id
+  vpc_id      = data.aws_vpc.existing.id
 
   ingress {
     description = "HTTP from anywhere"
@@ -180,7 +45,7 @@ resource "aws_security_group" "public_facing" {
   }
 
   ingress {
-    description = "HTTP from anywhere"
+    description = "HTTPS from anywhere"
     from_port   = 443
     to_port     = 443
     protocol    = "tcp"
@@ -202,14 +67,13 @@ resource "aws_security_group" "public_facing" {
 resource "aws_security_group" "private_app" {
   name        = "allow_nginx"
   description = "Allow HTTP inbound traffic within VPC"
-  vpc_id      = aws_vpc.main.id
+  vpc_id      = data.aws_vpc.existing.id
 
   ingress {
     description = "HTTP from public subnet"
     from_port   = 8080
     to_port     = 8080
     protocol    = "tcp"
-    #    cidr_blocks = [aws_security_group.public_facing.id]
     security_groups = [aws_security_group.public_facing.id]
   }
 
@@ -221,15 +85,6 @@ resource "aws_security_group" "private_app" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  /* remove as it is on private_db
-  ingress {
-    description = "MYSQL/Aurora from private subnet"
-    from_port   = 3306
-    to_port     = 3306
-    protocol    = "TCP"
-    self        = true
-  }
-*/
   egress {
     from_port   = 0
     to_port     = 0
@@ -245,32 +100,13 @@ resource "aws_security_group" "private_app" {
 resource "aws_security_group" "private_db" {
   name        = "allow_wordpress"
   description = "Allow HTTP inbound traffic within VPC"
-  vpc_id      = aws_vpc.main.id
-/* Exclude because using api
-  ingress {
-    description = "HTTP from private subnet app tier"
-    from_port   = 3306
-    to_port     = 3306
-    protocol    = "tcp"
-    #    cidr_blocks = [aws_security_group.public.id]
-    security_groups = [aws_security_group.private_app.id]
-  }
+  vpc_id      = data.aws_vpc.existing.id
 
   ingress {
-    description = "Setup to allow SSM"
+    description = "API access from public subnet"
     from_port   = 3001
     to_port     = 3001
     protocol    = "tcp"
-#    cidr_blocks = [aws_security_group.public.id]
-    security_groups = [aws_security_group.private_app.id]
-  } 
-*/
-  ingress {
-    description = "Setup to allow SSM"
-    from_port   = 3001
-    to_port     = 3001
-    protocol    = "tcp"
-#    cidr_blocks = [aws_security_group.public.id]
     security_groups = [aws_security_group.public_facing.id]
   }  
 
@@ -283,7 +119,7 @@ resource "aws_security_group" "private_db" {
   }
 
   egress {
-    description = "SSM from AWS"
+    description = "HTTPS for SSM"
     from_port   = 443
     to_port     = 443
     protocol    = "tcp"
@@ -291,7 +127,7 @@ resource "aws_security_group" "private_db" {
   }
 
   egress {
-    description = "SSM from AWS"
+    description = "HTTP for SSM"
     from_port   = 80
     to_port     = 80
     protocol    = "tcp"
@@ -331,15 +167,15 @@ resource "aws_iam_instance_profile" "ec2_ssm_profile" {
   role = aws_iam_role.ec2_ssm_role.name
 }
 
-# ALB
+# ALB - using existing subnets
 resource "aws_lb" "example" {
   name               = "example-alb"
   internal           = false
   load_balancer_type = "application"
   security_groups    = [aws_security_group.public_facing.id]
   subnets            = [
-    aws_subnet.public_facing_1a.id,
-    aws_subnet.public_facing_1b.id
+    data.aws_subnet.wordpress-1a.id,
+    data.aws_subnet.wordpress-1b.id
   ]
 
   enable_deletion_protection = false
@@ -353,14 +189,14 @@ resource "aws_lb_target_group" "frontend" {
   name     = "frontend-tg"
   port     = 8080
   protocol = "HTTP"
-  vpc_id   = aws_vpc.main.id
+  vpc_id   = data.aws_vpc.existing.id
 }
 
 resource "aws_lb_target_group" "backend" {
   name     = "backend-tg"
   port     = 3001
   protocol = "HTTP"
-  vpc_id   = aws_vpc.main.id
+  vpc_id   = data.aws_vpc.existing.id
 
   health_check {
     enabled             = true
@@ -452,13 +288,15 @@ resource "aws_launch_template" "mysql" {
   )
 }
 
-# WORDPRESS AUTOSCALING GROUP
+# WORDPRESS AUTOSCALING GROUP - using existing subnets
 resource "aws_autoscaling_group" "wordpress" {
   name                = "wordpress-asg"
   min_size            = 2
   max_size            = 4
   desired_capacity    = 2
-  vpc_zone_identifier = [aws_subnet.private_app.id]
+  vpc_zone_identifier = [
+    data.aws_subnet.wordpress-1a.id
+  ]
   health_check_type   = "EC2"
   target_group_arns   = [aws_lb_target_group.frontend.arn]
 
@@ -478,13 +316,15 @@ resource "aws_autoscaling_group" "wordpress" {
   }
 }
 
-# MYSQL AUTOSCALING GROUP
+# MYSQL AUTOSCALING GROUP - using existing subnets
 resource "aws_autoscaling_group" "mysql" {
   name                = "mysql-asg"
   min_size            = 1
   max_size            = 2
   desired_capacity    = 1
-  vpc_zone_identifier = [aws_subnet.private_db.id]
+  vpc_zone_identifier = [
+    data.aws_subnet.wordpress-1b.id
+  ]
   health_check_type   = "EC2"
   target_group_arns   = [aws_lb_target_group.backend.arn]
 
@@ -503,126 +343,3 @@ resource "aws_autoscaling_group" "mysql" {
     create_before_destroy = true
   }
 }
-/*
-# EC2 Instances
-resource "aws_instance" "nginx" {
-  ami                    = var.ami
-  instance_type          = "t2.micro"
-  subnet_id              = aws_subnet.public_facing_1a.id
-  vpc_security_group_ids = [aws_security_group.public_facing.id]
-  iam_instance_profile   = aws_iam_instance_profile.ec2_ssm_profile.name
-
-  user_data = <<-EOF
-              #!/bin/bash
-              yum update -y
-              amazon-linux-extras install docker -y
-              service docker start
-              usermod -a -G docker ec2-user
-              docker pull nginx
-              
-              # Create a custom NGINX configuration to point to the WordPress instance
-              cat << EOF1 > /home/ec2-user/default.conf
-              server {
-                  listen 80;
-                  server_name localhost;
-              
-                  location / {
-                      proxy_pass http://${aws_instance.wordpress.private_ip}:8080;
-                      proxy_set_header Host \$host;
-                      proxy_set_header X-Real-IP \$remote_addr;
-                      proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-                      proxy_set_header X-Forwarded-Proto \$scheme;
-                  }
-
-                  location /api/ {
-                      proxy_pass http://${aws_instance.mysql.private_ip}:3001;
-                      proxy_http_version 1.1;
-                      proxy_set_header Host \$host;
-                      proxy_set_header X-Real-IP \$remote_addr;
-                  }
-              }
-              EOF1
-
-              docker run -d -p 80:80 --name nginx-demo nginx;
-              # Wait until the nginx-demo container is running
-              while [ "$(docker inspect -f '{{.State.Running}}' nginx-demo)" != "true" ]; do
-                  echo "Waiting for nginx-demo to start..."
-                  sleep 1
-              done
-              docker cp /home/ec2-user/default.conf nginx-demo:/etc/nginx/conf.d;
-              docker exec nginx-demo nginx -s reload;
-              EOF
-
-  tags = {
-    Name = "nginx-instance"
-  }
-  depends_on = [
-      aws_nat_gateway.nat,
-      aws_instance.mysql
-  ]
-}
-
-resource "aws_instance" "wordpress" {
-  ami                    = var.ami_ubuntu
-  instance_type          = "t2.micro"
-  subnet_id              = aws_subnet.private_app.id
-  vpc_security_group_ids = [aws_security_group.private_app.id]
-  iam_instance_profile   = aws_iam_instance_profile.ec2_ssm_profile.name
-
-  user_data = <<-EOF
-              #!/bin/bash
-              apt update -y
-              curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -
-              apt install -y nodejs
-              cd
-              git clone -b supabase_auth_main https://github.com/davidawcloudsecurity/learn-lovable-borderless-trade-sphere.git
-              cd learn-lovable-borderless-trade-sphere/
-              npm i;npm run dev
-              EOF
-
-  tags = {
-    Name = "wordpress-instance"
-  }
-  depends_on = [
-      aws_nat_gateway.nat,
-      aws_instance.mysql
-  ]
-}
-resource "aws_instance" "mysql" {
-  ami                    = var.ami_ubuntu
-  instance_type          = "t2.micro"
-  subnet_id              = aws_subnet.private_db.id
-  vpc_security_group_ids = [aws_security_group.private_db.id]
-  iam_instance_profile   = aws_iam_instance_profile.ec2_ssm_profile.name
-
-  user_data = <<-EOF
-              #!/bin/bash
-              git clone -b supabase_auth_main https://github.com/davidawcloudsecurity/learn-lovable-borderless-trade-sphere.git
-              cd learn-lovable-borderless-trade-sphere/
-              sed -i "s/localhost/$(hostname -I | awk '{print $1}')/g" server.js
-              apt update -y
-              curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -
-              apt-get install -y nodejs
-              apt install -y npm
-              npm install -y express cors
-              node server.js
-              apt install docker -y
-              service docker start
-              usermod -a -G docker ec2-user
-              docker run -d -e MYSQL_ROOT_PASSWORD=rootpassword \
-                         -e MYSQL_DATABASE=wordpress \
-                         -e MYSQL_USER=wordpress \
-                         -e MYSQL_PASSWORD=wordpress \
-                         -p 3306:3306 mysql:5.7
-              EOF
-
-  tags = {
-    Name = "mysql-instance"
-  }
-  depends_on = [aws_nat_gateway.nat]
-}
-
-output "seeds" {
-  value = [aws_instance.nginx.private_ip, aws_instance.wordpress.private_ip, aws_instance.mysql.private_ip]
-}
-*/
