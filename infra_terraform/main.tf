@@ -17,10 +17,13 @@ data "aws_vpc" "existing" {
   id = "vpc-0b3556a25e5d65182"
 }
 
-data "aws_subnet" "wordpress" {
+data "aws_subnet" "wordpress-1a" {
   id = "subnet-06f8090a56fb14713"
 }
 
+data "aws_subnet" "wordpress-1b" {
+  id = "subnet-0782e8b53d6067a2b"
+}
 
 provider "aws" {
   region  = var.region
