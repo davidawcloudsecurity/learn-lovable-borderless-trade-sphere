@@ -251,49 +251,47 @@ resource "aws_launch_template" "wordpress" {
     name = aws_iam_instance_profile.ec2_ssm_profile.name
   }
   user_data = base64encode(<<-EOF
-<powershell>
-# Set error action
-$ErrorActionPreference = "Stop"
-
-# --- CONFIGURATION ---
-$domainName = "corp.example.com"
-$domainUser="corp\Admin"
-$domainPass="p@ssw0rd!"
-
-# --- Install AWS Tools for PowerShell if needed ---
-if (-not (Get-Module -ListAvailable -Name 'AWSPowerShell')) {
-    Write-Output "Installing AWS Tools for PowerShell..."
-    Install-Package -Name AWSPowerShell -Force -Scope AllUsers
-    Import-Module AWSPowerShell
-}
-
-if (-not $domainUser -or -not $domainPass) {
-    Write-Output "ERROR: Domain credentials are empty."
-    exit 1
-}
-
-# --- Prepare credentials object ---
-$securePassword = ConvertTo-SecureString $domainPass -AsPlainText -Force
-$cred = New-Object System.Management.Automation.PSCredential ($domainUser, $securePassword)
-
-# --- Generate random hostname ---
-$randomNumber = Get-Random -Minimum 90 -Maximum 101
-$newHostname = "example$randomNumber"
-
-Write-Output "Setting hostname to $newHostname..."
-Rename-Computer -NewName $newHostname -Force -Restart:$false
-
-# --- Join domain ---
-Write-Output "Joining domain $domainName as $domainUser..."
-try {
-    Add-Computer -DomainName $domainName -Credential $cred -Force -Options JoinWithNewName,AccountCreate
-    Write-Output "Successfully joined the domain. Restarting..."
-    Restart-Computer -Force
-} catch {
-    Write-Output "ERROR: Failed to join the domain. $_"
-    exit 2
-}
-</powershell>
+  # Set error action
+  $ErrorActionPreference = "Stop"
+  
+  # --- CONFIGURATION ---
+  $domainName = "corp.example.com"
+  $domainUser="corp\Admin"
+  $domainPass="p@ssw0rd!"
+  
+  # --- Install AWS Tools for PowerShell if needed ---
+  if (-not (Get-Module -ListAvailable -Name 'AWSPowerShell')) {
+      Write-Output "Installing AWS Tools for PowerShell..."
+      Install-Package -Name AWSPowerShell -Force -Scope AllUsers
+      Import-Module AWSPowerShell
+  }
+  
+  if (-not $domainUser -or -not $domainPass) {
+      Write-Output "ERROR: Domain credentials are empty."
+      exit 1
+  }
+  
+  # --- Prepare credentials object ---
+  $securePassword = ConvertTo-SecureString $domainPass -AsPlainText -Force
+  $cred = New-Object System.Management.Automation.PSCredential ($domainUser, $securePassword)
+  
+  # --- Generate random hostname ---
+  $randomNumber = Get-Random -Minimum 90 -Maximum 101
+  $newHostname = "example$randomNumber"
+  
+  Write-Output "Setting hostname to $newHostname..."
+  Rename-Computer -NewName $newHostname -Force -Restart:$false
+  
+  # --- Join domain ---
+  Write-Output "Joining domain $domainName as $domainUser..."
+  try {
+      Add-Computer -DomainName $domainName -Credential $cred -Force -Options JoinWithNewName,AccountCreate
+      Write-Output "Successfully joined the domain. Restarting..."
+      Restart-Computer -Force
+  } catch {
+      Write-Output "ERROR: Failed to join the domain. $_"
+      exit 2
+  }
   EOF
   )
 }
