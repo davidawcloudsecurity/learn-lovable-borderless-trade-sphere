@@ -258,7 +258,7 @@ $ErrorActionPreference = "Stop"
 # --- CONFIGURATION ---
 $domainName = "corp.example.com"
 $domainUser = "corp\Admin"
-$domainPass = "p@ssw0rd!"
+$domainPass = "********!"
 
 # --- Install AWS Tools for PowerShell if needed ---
 if (-not (Get-Module -ListAvailable -Name 'AWSPowerShell')) {
@@ -276,12 +276,40 @@ if (-not $domainUser -or -not $domainPass) {
 $securePassword = ConvertTo-SecureString $domainPass -AsPlainText -Force
 $cred = New-Object System.Management.Automation.PSCredential ($domainUser, $securePassword)
 
-# --- Generate random hostname ---
-$randomNumber = Get-Random -Minimum 90 -Maximum 101
-$newHostname = "example$randomNumber"
+# --- Generate random hostname and check for existence ---
+$maxAttempts = 10
+$attemptCount = 0
+$hostnameFound = $false
 
+do {
+    $randomNumber = Get-Random -Minimum 90 -Maximum 101
+    $newHostname = "example$randomNumber"
+    $attemptCount++
+    
+    Write-Output "Checking hostname: $newHostname (Attempt $attemptCount of $maxAttempts)"
+    
+    try {
+        $computer = Get-ADComputer -Identity $newHostname -Credential $cred
+        Write-Output "Hostname $newHostname already exists in AD. Trying another..."
+    } catch {
+        Write-Output "Hostname $newHostname is available"
+        $hostnameFound = $true
+    }
+    
+    if ($attemptCount -ge $maxAttempts -and -not $hostnameFound) {
+        Write-Output "ERROR: Could not find available hostname after $maxAttempts attempts."
+        exit 3
+    }
+} while (-not $hostnameFound)
+
+# --- Rename computer ---
 Write-Output "Setting hostname to $newHostname..."
-Rename-Computer -NewName $newHostname -Force -Restart:$false
+try {
+    Rename-Computer -NewName $newHostname -Force -Restart:$false
+} catch {
+    Write-Output "ERROR: Failed to rename computer. $_"
+    exit 4
+}
 
 # --- Join domain ---
 Write-Output "Joining domain $domainName as $domainUser..."
