@@ -494,7 +494,7 @@ resource "aws_autoscaling_group" "mysql" {
 
 resource "aws_s3_bucket" "product_images" {
   bucket = "learn-lovable-product-images-${random_id.suffix.hex}" # Use unique suffix to avoid bucket name conflicts
-  acl    = "public-read"
+#  acl    = "public-read"
 
   tags = {
     Name        = "Product Images"
@@ -506,26 +506,27 @@ resource "random_id" "suffix" {
   byte_length = 4
 }
 
+# Revised public access block: Block ACLs but allow public policies
 resource "aws_s3_bucket_public_access_block" "public_access" {
   bucket = aws_s3_bucket.product_images.id
 
-  block_public_acls   = false
-  block_public_policy = false
-  ignore_public_acls  = false
-  restrict_public_buckets = false
+  block_public_acls       = true   # Block ACLs (required for BucketOwnerEnforced)
+  block_public_policy     = false  # Allow public bucket policies
+  ignore_public_acls      = true   # Ignore public ACLs
+  restrict_public_buckets = false  # Don't restrict public policies
 }
 
+# Bucket policy remains unchanged (uses policy, not ACLs)
 resource "aws_s3_bucket_policy" "public_read_policy" {
   bucket = aws_s3_bucket.product_images.id
-
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
       {
-        Effect = "Allow"
+        Effect    = "Allow"
         Principal = "*"
-        Action = "s3:GetObject"
-        Resource = "${aws_s3_bucket.product_images.arn}/*"
+        Action    = "s3:GetObject"
+        Resource  = "${aws_s3_bucket.product_images.arn}/*"
       }
     ]
   })
