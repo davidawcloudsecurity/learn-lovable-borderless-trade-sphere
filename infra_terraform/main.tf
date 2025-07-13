@@ -491,6 +491,46 @@ resource "aws_autoscaling_group" "mysql" {
     create_before_destroy = true
   }
 }
+
+resource "aws_s3_bucket" "product_images" {
+  bucket = "learn-lovable-product-images-${random_id.suffix.hex}" # Use unique suffix to avoid bucket name conflicts
+  acl    = "public-read"
+
+  tags = {
+    Name        = "Product Images"
+    Environment = "production"
+  }
+}
+
+resource "random_id" "suffix" {
+  byte_length = 4
+}
+
+resource "aws_s3_bucket_public_access_block" "public_access" {
+  bucket = aws_s3_bucket.product_images.id
+
+  block_public_acls   = false
+  block_public_policy = false
+  ignore_public_acls  = false
+  restrict_public_buckets = false
+}
+
+resource "aws_s3_bucket_policy" "public_read_policy" {
+  bucket = aws_s3_bucket.product_images.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Principal = "*"
+        Action = "s3:GetObject"
+        Resource = "${aws_s3_bucket.product_images.arn}/*"
+      }
+    ]
+  })
+}
+
 /* remove local instance
 # EC2 Instances
 resource "aws_instance" "nginx" {
