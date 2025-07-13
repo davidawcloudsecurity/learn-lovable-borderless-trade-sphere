@@ -55,7 +55,7 @@ const CategorySection = () => {
             >
               <div className="aspect-square">
                 <img
-                  src={`./assets/images/${category.image}`}
+                  src={`/assets/images/${category.image}`}
                   alt={category.name}
                   className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
                 />
