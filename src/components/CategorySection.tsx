@@ -55,7 +55,7 @@ const CategorySection = () => {
             >
               <div className="aspect-square">
                 <img
-                  src={`https://images.unsplash.com/${category.image}`}
+                  src={`.assets/public/${category.image}`}
                   alt={category.name}
                   className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
                 />
