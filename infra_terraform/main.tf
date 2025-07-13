@@ -511,9 +511,9 @@ resource "aws_s3_bucket_public_access_block" "public_access" {
   bucket = aws_s3_bucket.product_images.id
 
   block_public_acls       = true   # Block ACLs (required for BucketOwnerEnforced)
-  block_public_policy     = false  # Allow public bucket policies
+  block_public_policy     = true  # Allow public bucket policies
   ignore_public_acls      = true   # Ignore public ACLs
-  restrict_public_buckets = false  # Don't restrict public policies
+  restrict_public_buckets = true  # Don't restrict public policies
 }
 
 # Bucket policy remains unchanged (uses policy, not ACLs)
