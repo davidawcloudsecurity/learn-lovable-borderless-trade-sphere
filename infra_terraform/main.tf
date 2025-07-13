@@ -491,7 +491,7 @@ resource "aws_autoscaling_group" "mysql" {
     create_before_destroy = true
   }
 }
-/ * remove local instance
+/* remove local instance
 # EC2 Instances
 resource "aws_instance" "nginx" {
   ami                    = var.ami
