@@ -25,13 +25,11 @@ app.get('/api/search', (req, res) => {
   ];
   const filtered = products.filter(item => item.name.toLowerCase().includes(q));
   res.json({
-    success: true,
-    data: filtered,
-    pagination: {
-      limit: 20,
-      offset: 0,
-      total: filtered.length,
-    },
+    query: q,                   // the search query
+    results: filteredProducts,   // the array of results
+    total: filteredProducts.length,
+    limit: 12,                  // or whatever limit you use
+    offset: offset              // the offset you use
   });
 });
 
