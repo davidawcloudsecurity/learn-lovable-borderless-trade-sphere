@@ -55,14 +55,25 @@ const SearchResults = () => {
         const response = await fetch(`/api/search?q=${encodeURIComponent(query)}&limit=${limit}&offset=${offset}`);
         
         if (!response.ok) {
-          throw new Error('Search failed');
+          throw new Error(`Search failed with status: ${response.status}`);
         }
         
         const data = await response.json();
+        
+        // Validate response structure
+        if (!data || typeof data !== 'object') {
+          throw new Error('Invalid response format');
+        }
+        
         setSearchResults(data);
       } catch (err) {
         console.error('Search error:', err);
-        setError('Failed to search products. Please try again.');
+        if (err instanceof Error && err.message.includes('Unexpected token')) {
+          setError('Search service is currently unavailable. Please try again later.');
+        } else {
+          setError('Failed to search products. Please try again.');
+        }
+        setSearchResults(null);
       } finally {
         setLoading(false);
       }
@@ -71,7 +82,10 @@ const SearchResults = () => {
     fetchSearchResults();
   }, [query, page, offset]);
 
-  const totalPages = searchResults ? Math.ceil(searchResults.total / limit) : 0;
+  // Safe calculation of total pages
+  const totalPages = searchResults && searchResults.total && !isNaN(searchResults.total) 
+    ? Math.ceil(searchResults.total / limit) 
+    : 0;
 
   const handlePageChange = (newPage: number) => {
     const newParams = new URLSearchParams(searchParams);
@@ -103,8 +117,10 @@ const SearchResults = () => {
             <p className="text-lg text-gray-600">
               {loading ? (
                 'Searching...'
+              ) : error ? (
+                `Search encountered an error for "${query}"`
               ) : searchResults ? (
-                `Found ${searchResults.total} results for "${query}"`
+                `Found ${searchResults.total || 0} results for "${query}"`
               ) : (
                 `No results found for "${query}"`
               )}
@@ -127,6 +143,13 @@ const SearchResults = () => {
         {error && (
           <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
             <p className="text-red-700">{error}</p>
+            <Button
+              variant="outline"
+              onClick={() => window.location.reload()}
+              className="mt-2"
+            >
+              Try Again
+            </Button>
           </div>
         )}
 
@@ -138,7 +161,7 @@ const SearchResults = () => {
           </div>
         )}
 
-        {searchResults && searchResults.results.length > 0 && (
+        {searchResults && searchResults.results && Array.isArray(searchResults.results) && searchResults.results.length > 0 && (
           <>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8">
               {searchResults.results.map(product => (
@@ -159,17 +182,20 @@ const SearchResults = () => {
                 <div className="flex gap-1">
                   {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
                     const pageNum = Math.max(1, Math.min(totalPages - 4, page - 2)) + i;
-                    return (
-                      <Button
-                        key={pageNum}
-                        variant={page === pageNum ? "default" : "outline"}
-                        onClick={() => handlePageChange(pageNum)}
-                        className="w-10 h-10"
-                      >
-                        {pageNum}
-                      </Button>
-                    );
-                  })}
+                    if (pageNum <= totalPages) {
+                      return (
+                        <Button
+                          key={pageNum}
+                          variant={page === pageNum ? "default" : "outline"}
+                          onClick={() => handlePageChange(pageNum)}
+                          className="w-10 h-10"
+                        >
+                          {pageNum}
+                        </Button>
+                      );
+                    }
+                    return null;
+                  }).filter(Boolean)}
                 </div>
 
                 <Button
@@ -184,7 +210,7 @@ const SearchResults = () => {
           </>
         )}
 
-        {searchResults && searchResults.results.length === 0 && query && (
+        {searchResults && (!searchResults.results || !Array.isArray(searchResults.results) || searchResults.results.length === 0) && query && !loading && !error && (
           <div className="text-center py-16">
             <Search className="h-16 w-16 text-gray-400 mx-auto mb-4" />
             <h2 className="text-2xl font-semibold text-gray-900 mb-2">
