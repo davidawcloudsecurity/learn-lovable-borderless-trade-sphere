@@ -403,7 +403,7 @@ resource "aws_launch_template" "wordpress" {
     curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -
     apt install -y nodejs
     cd
-    git clone -b supabase_auth_main https://github.com/davidawcloudsecurity/learn-lovable-borderless-trade-sphere.git
+    git clone https://github.com/davidawcloudsecurity/learn-lovable-borderless-trade-sphere.git
     cd learn-lovable-borderless-trade-sphere/
     npm i;npm run build;npm install -g serve;serve -s dist -l 8080
   EOF
@@ -424,7 +424,7 @@ resource "aws_launch_template" "mysql" {
     apt update -y
     apt install -y docker.io
     systemctl start docker
-    git clone -b supabase_auth_main https://github.com/davidawcloudsecurity/learn-lovable-borderless-trade-sphere.git
+    git clone https://github.com/davidawcloudsecurity/learn-lovable-borderless-trade-sphere.git
     cd learn-lovable-borderless-trade-sphere/
     sed -i "s/localhost/$(hostname -I | awk '{print $1}')/g" server.js
     curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -
