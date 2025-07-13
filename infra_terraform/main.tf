@@ -491,7 +491,7 @@ resource "aws_autoscaling_group" "mysql" {
     create_before_destroy = true
   }
 }
-
+/ * remove local instance
 # EC2 Instances
 resource "aws_instance" "nginx" {
   ami                    = var.ami
@@ -613,3 +613,4 @@ resource "aws_instance" "mysql" {
 output "seeds" {
   value = [aws_instance.nginx.private_ip, aws_instance.wordpress.private_ip, aws_instance.mysql.private_ip]
 }
+*/
