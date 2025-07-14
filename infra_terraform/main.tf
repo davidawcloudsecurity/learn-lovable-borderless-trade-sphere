@@ -397,6 +397,18 @@ resource "aws_launch_template" "wordpress" {
   iam_instance_profile {
     name = aws_iam_instance_profile.ec2_ssm_profile.name
   }
+
+  # This enables Spot Instance pricing
+  instance_market_options {
+    market_type = "spot"
+
+    spot_options {
+      max_price                      = "0.02"         # Optional: max price in USD/hour
+      spot_instance_type             = "one-time"     # or "persistent"
+      instance_interruption_behavior = "terminate"    # or "stop" or "hibernate"
+    }
+  }
+
   user_data = base64encode(<<-EOF
     #!/bin/bash
     apt update -y
@@ -419,6 +431,18 @@ resource "aws_launch_template" "mysql" {
   iam_instance_profile {
     name = aws_iam_instance_profile.ec2_ssm_profile.name
   }
+
+  # This enables Spot Instance pricing
+  instance_market_options {
+    market_type = "spot"
+
+    spot_options {
+      max_price                      = "0.02"         # Optional: max price in USD/hour
+      spot_instance_type             = "one-time"     # or "persistent"
+      instance_interruption_behavior = "terminate"    # or "stop" or "hibernate"
+    }
+  }
+
   user_data = base64encode(<<-EOF
     #!/bin/bash
     apt update -y
@@ -645,8 +669,6 @@ resource "aws_instance" "wordpress" {
   ]
 }
 
-*/
-
 resource "aws_instance" "mysql" {
   ami                    = var.ami_ubuntu
   instance_type          = "t2.micro"
@@ -691,7 +713,7 @@ resource "aws_instance" "mysql" {
   }
   depends_on = [aws_nat_gateway.nat]
 }
-/*
+
 output "seeds" {
   value = [aws_instance.nginx.private_ip, aws_instance.wordpress.private_ip, aws_instance.mysql.private_ip]
 }
