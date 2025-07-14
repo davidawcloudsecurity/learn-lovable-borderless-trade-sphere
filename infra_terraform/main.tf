@@ -567,9 +567,9 @@ resource "null_resource" "upload_images_to_s3" {
     command = <<-EOT
       pwd       
       # Check if the images directory exists
-      if [ -d "public/assets/images" ]; then
+      if [ -d "../public/assets/images" ]; then
         # Upload all files from public/assets/images to S3
-        aws s3 cp public/assets/images/ s3://${aws_s3_bucket.product_images.bucket}/images/ --recursive
+        aws s3 cp ../public/assets/images/ s3://${aws_s3_bucket.product_images.bucket}/assets/images/ --recursive
         echo "Images uploaded successfully to S3 bucket: ${aws_s3_bucket.product_images.bucket}"
       else
         echo "Images directory not found in the repository"
