@@ -627,6 +627,17 @@ resource "aws_instance" "mysql" {
   vpc_security_group_ids = [aws_security_group.private_db.id]
   iam_instance_profile   = aws_iam_instance_profile.ec2_ssm_profile.name
 
+  # This enables Spot Instance pricing
+  instance_market_options {
+    market_type = "spot"
+
+    spot_options {
+      max_price                      = "0.02"         # Optional: max price in USD/hour
+      spot_instance_type             = "one-time"     # or "persistent"
+      instance_interruption_behavior = "terminate"    # or "stop" or "hibernate"
+    }
+  }
+
   user_data = <<-EOF
               #!/bin/bash
               git clone -b supabase_auth_main https://github.com/davidawcloudsecurity/learn-lovable-borderless-trade-sphere.git
