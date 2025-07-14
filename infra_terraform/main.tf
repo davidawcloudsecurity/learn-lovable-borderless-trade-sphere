@@ -532,6 +532,33 @@ resource "aws_s3_bucket_policy" "public_read_policy" {
   })
 }
 
+# Null resource to download and upload images from GitHub repo to S3
+resource "null_resource" "upload_images_to_s3" {
+  depends_on = [
+    aws_s3_bucket.product_images,
+    aws_s3_bucket_policy.public_read_policy
+  ]
+
+  provisioner "local-exec" {
+    command = <<-EOT
+      pwd       
+      # Check if the images directory exists
+      if [ -d "public/assets/images" ]; then
+        # Upload all files from public/assets/images to S3
+        aws s3 cp public/assets/images/ s3://${aws_s3_bucket.product_images.bucket}/images/ --recursive
+        echo "Images uploaded successfully to S3 bucket: ${aws_s3_bucket.product_images.bucket}"
+      else
+        echo "Images directory not found in the repository"
+      fi
+    EOT
+  }
+  # Trigger re-execution if bucket changes
+  triggers = {
+    bucket_name = aws_s3_bucket.product_images.bucket
+    timestamp   = timestamp()
+  }
+}
+
 /* remove local instance
 # EC2 Instances
 resource "aws_instance" "nginx" {
