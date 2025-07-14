@@ -518,7 +518,9 @@ resource "aws_autoscaling_group" "mysql" {
 
 resource "aws_s3_bucket" "product_images" {
   bucket = "learn-lovable-product-images-${random_id.suffix.hex}" # Use unique suffix to avoid bucket name conflicts
-#  acl    = "public-read"
+
+# ✅ This will automatically delete all objects when destroying the bucket
+  force_destroy = true
 
   tags = {
     Name        = "Product Images"
