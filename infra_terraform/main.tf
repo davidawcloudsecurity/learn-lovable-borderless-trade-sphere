@@ -535,11 +535,12 @@ resource "random_id" "suffix" {
 # Revised public access block: Block ACLs but allow public policies
 resource "aws_s3_bucket_public_access_block" "public_access" {
   bucket = aws_s3_bucket.product_images.id
-
+/* it doesn't work if concurrent
   block_public_acls       = true   # Block public ACLs
   block_public_policy     = false  # ✅ Allow public bucket policies
   ignore_public_acls      = true   # Ignore public ACLs
   restrict_public_buckets = false  # ✅ Allow public policies
+*/
 }
 
 # Bucket policy remains unchanged (uses policy, not ACLs)
@@ -567,7 +568,11 @@ resource "null_resource" "upload_images_to_s3" {
 
   provisioner "local-exec" {
     command = <<-EOT
-      pwd       
+      pwd
+      aws s3api put-public-access-block \
+        --bucket ${aws_s3_bucket.product_images.bucket} \
+        --public-access-block-configuration \
+          'BlockPublicAcls=true,IgnorePublicAcls=true,BlockPublicPolicy=false,RestrictPublicBuckets=false'
       # Check if the images directory exists
       if [ -d "../public/assets/images" ]; then
         # Upload all files from public/assets/images to S3
