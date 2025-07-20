@@ -557,7 +557,8 @@ resource "aws_s3_bucket_policy" "public_read_policy" {
     ]
   })
   depends_on = [
-    aws_s3_bucket.product_images
+    aws_s3_bucket.product_images,
+    aws_s3_bucket_public_access_block.public_access  # This ensures PAB is applied first
   ]
 }
 
@@ -571,10 +572,6 @@ resource "null_resource" "upload_images_to_s3" {
   provisioner "local-exec" {
     command = <<-EOT
       pwd
-      aws s3api put-public-access-block \
-        --bucket ${aws_s3_bucket.product_images.bucket} \
-        --public-access-block-configuration \
-          'BlockPublicAcls=true,IgnorePublicAcls=true,BlockPublicPolicy=false,RestrictPublicBuckets=false'
       # Check if the images directory exists
       if [ -d "../public/assets/images" ]; then
         # Upload all files from public/assets/images to S3
