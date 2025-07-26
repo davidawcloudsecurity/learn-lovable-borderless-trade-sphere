@@ -409,6 +409,11 @@ resource "aws_launch_template" "wordpress" {
     }
   }
 
+  depends_on = [
+    aws_s3_bucket.product_images,
+    aws_s3_bucket_policy.public_read_policy
+  ]
+
   user_data = base64encode(<<-EOF
     #!/bin/bash
     apt update -y
@@ -417,6 +422,7 @@ resource "aws_launch_template" "wordpress" {
     cd
     git clone https://github.com/davidawcloudsecurity/learn-lovable-borderless-trade-sphere.git
     cd learn-lovable-borderless-trade-sphere/
+    echo "REACT_APP_S3_BUCKET_URL=https://${aws_s3_bucket.product_images.bucket}.s3.${data.aws_region.current.name}.amazonaws.com" > .env
     npm i;npm run build;npm install -g serve;serve -s dist -l 8080
   EOF
   )
