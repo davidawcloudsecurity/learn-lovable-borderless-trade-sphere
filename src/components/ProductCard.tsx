@@ -5,7 +5,7 @@ import { ShoppingCart, Package } from 'lucide-react';
 
 const S3_BUCKET_URL = import.meta.env.VITE_S3_BUCKET_URL || '';
 const S3_IMAGES_PATH = '/assets/images/';
-console.log("S3: " ${S3_BUCKET_URL});
+console.log(`S3: ${S3_BUCKET_URL}`);
 interface ProductCardProps {
   id: number;
   name: string;
