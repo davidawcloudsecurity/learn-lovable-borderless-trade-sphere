@@ -2,8 +2,8 @@ import React from 'react';
 
 const CategorySection = () => {
   // S3 bucket configuration - you can move this to environment variables or config file
-  const S3_BUCKET_URL = process.env.REACT_APP_S3_BUCKET_URL || 'https://learn-lovable-product-images-4fdf8060.s3.us-east-1.amazonaws.com';
-  const S3_IMAGES_PATH = '/images';
+  const S3_BUCKET_URL = process.env.REACT_APP_S3_BUCKET_URL || '';
+  const S3_IMAGES_PATH = '/assets/images/';
   
   const categories = [
     {
@@ -58,7 +58,8 @@ const CategorySection = () => {
             >
               <div className="aspect-square">
                 <img
-                  src={`/assets/images/${category.image}`}
+                  src={`${S3_BUCKET_URL}${S3_IMAGES_PATH}${category.image}`}
+                  # src={`/assets/images/${category.image}`}
                   alt={category.name}
                   className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
                 />
