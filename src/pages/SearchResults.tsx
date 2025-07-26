@@ -1,5 +1,4 @@
-
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import Header from '@/components/Header';
 import ProductCard from '@/components/ProductCard';
@@ -41,46 +40,53 @@ const SearchResults = () => {
   const limit = 12;
   const offset = (page - 1) * limit;
 
+  // Extract fetchSearchResults as a reusable function
+  const fetchSearchResults = useCallback(async () => {
+    if (!query.trim()) {
+      setSearchResults(null);
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await fetch(`/api/search?q=${encodeURIComponent(query)}&limit=${limit}&offset=${offset}`);
+      
+      if (!response.ok) {
+        throw new Error(`Search failed with status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      
+      // Validate response structure
+      if (!data || typeof data !== 'object') {
+        throw new Error('Invalid response format');
+      }
+      
+      setSearchResults(data);
+    } catch (err) {
+      console.error('Search error:', err);
+      if (err instanceof Error && err.message.includes('Unexpected token')) {
+        setError('Search service is currently unavailable. Please try again later.');
+      } else {
+        setError('Failed to search products. Please try again.');
+      }
+      setSearchResults(null);
+    } finally {
+      setLoading(false);
+    }
+  }, [query, page, offset, limit]);
+
   useEffect(() => {
-    const fetchSearchResults = async () => {
-      if (!query.trim()) {
-        setSearchResults(null);
-        setLoading(false);
-        return;
-      }
-
-      try {
-        setLoading(true);
-        setError(null);
-        const response = await fetch(`/api/search?q=${encodeURIComponent(query)}&limit=${limit}&offset=${offset}`);
-        
-        if (!response.ok) {
-          throw new Error(`Search failed with status: ${response.status}`);
-        }
-        
-        const data = await response.json();
-        
-        // Validate response structure
-        if (!data || typeof data !== 'object') {
-          throw new Error('Invalid response format');
-        }
-        
-        setSearchResults(data);
-      } catch (err) {
-        console.error('Search error:', err);
-        if (err instanceof Error && err.message.includes('Unexpected token')) {
-          setError('Search service is currently unavailable. Please try again later.');
-        } else {
-          setError('Failed to search products. Please try again.');
-        }
-        setSearchResults(null);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchSearchResults();
-  }, [query, page, offset]);
+  }, [fetchSearchResults]);
+
+  // Handle try again functionality
+  const handleTryAgain = () => {
+    setError(null);
+    fetchSearchResults();
+  };
 
   // Safe calculation of total pages
   const totalPages = searchResults && searchResults.total && !isNaN(searchResults.total) 
@@ -145,7 +151,7 @@ const SearchResults = () => {
             <p className="text-red-700">{error}</p>
             <Button
               variant="outline"
-              onClick={() => window.location.reload()}
+              onClick={handleTryAgain}
               className="mt-2"
             >
               Try Again
