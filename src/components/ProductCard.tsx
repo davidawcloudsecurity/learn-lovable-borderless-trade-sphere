@@ -3,6 +3,9 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { ShoppingCart, Package } from 'lucide-react';
 
+const S3_BUCKET_URL = import.meta.env.VITE_S3_BUCKET_URL || '';
+const S3_IMAGES_PATH = '/assets/images/';
+
 interface ProductCardProps {
   id: number;
   name: string;
