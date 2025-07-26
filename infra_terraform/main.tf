@@ -3,6 +3,9 @@ variable "region" {
   default     = "us-east-1"
 }
 
+# Add this data source to get the current AWS region
+data "aws_region" "current" {}
+
 variable "ami" {
   description = "Amazon Linux 2 AMI ID"
   default     = "ami-02c21308fed24a8ab" # Amazon Linux 2 AMI (HVM) - Kernel 5.10, SSD Volume Type in us-east-1
