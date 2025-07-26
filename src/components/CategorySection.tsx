@@ -59,7 +59,6 @@ const CategorySection = () => {
               <div className="aspect-square">
                 <img
                   src={`${S3_BUCKET_URL}${S3_IMAGES_PATH}${category.image}`}
-                  # src={`/assets/images/${category.image}`}
                   alt={category.name}
                   className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
                 />
