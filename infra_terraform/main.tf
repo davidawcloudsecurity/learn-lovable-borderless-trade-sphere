@@ -425,7 +425,7 @@ resource "aws_launch_template" "wordpress" {
     cd
     git clone https://github.com/davidawcloudsecurity/learn-lovable-borderless-trade-sphere.git
     cd learn-lovable-borderless-trade-sphere/
-    echo "REACT_APP_S3_BUCKET_URL=https://${aws_s3_bucket.product_images.bucket}.s3.${data.aws_region.current.id}.amazonaws.com" > .env
+    echo "VITE_S3_BUCKET_URL=https://${aws_s3_bucket.product_images.bucket}.s3.${data.aws_region.current.id}.amazonaws.com" > .env
     npm i;npm run build;npm install -g serve;serve -s dist -l 8080
   EOF
   )
