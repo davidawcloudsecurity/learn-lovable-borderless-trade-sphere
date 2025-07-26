@@ -4,8 +4,8 @@ import ProductCard from './ProductCard';
 
 const ProductGrid = () => {
   // S3 bucket configuration - you can move this to environment variables or config file
-  const S3_BUCKET_URL = process.env.REACT_APP_S3_BUCKET_URL || 'https://learn-lovable-product-images-4fdf8060.s3.us-east-1.amazonaws.com';
-  const S3_IMAGES_PATH = '/images';
+  const S3_BUCKET_URL = import.meta.env.VITE_S3_BUCKET_URL || '';
+  const S3_IMAGES_PATH = '/assets/images/';
   
   const products = [
     {
