@@ -35,7 +35,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
     <div className="bg-white rounded-lg shadow-md hover:shadow-xl transition-all duration-300 hover:scale-105 group">
       <div className="relative overflow-hidden rounded-t-lg">
         <img
-          src={`/assets/images/${image}`}
+          src={`${S3_BUCKET_URL}${S3_IMAGES_PATH}${image}`}
           alt={name}
           className="w-full h-48 object-cover group-hover:scale-110 transition-transform duration-300"
         />
