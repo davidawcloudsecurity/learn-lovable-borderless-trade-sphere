@@ -2,7 +2,7 @@ import React from 'react';
 
 const CategorySection = () => {
   // S3 bucket configuration - you can move this to environment variables or config file
-  const S3_BUCKET_URL = process.env.REACT_APP_S3_BUCKET_URL || '';
+  const S3_BUCKET_URL = import.meta.env.VITE_S3_BUCKET_URL || '';
   const S3_IMAGES_PATH = '/assets/images/';
   
   const categories = [
