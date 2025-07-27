@@ -4,6 +4,7 @@ import { ShoppingCart, Search, Globe, Menu, X, User, LogOut } from 'lucide-react
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
 import {
   Popover,
   PopoverContent,
@@ -16,11 +17,30 @@ const Header = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [suggestions, setSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [profile, setProfile] = useState<any>(null);
 
   const { user, signOut, loading } = useAuth();
   const navigate = useNavigate();
 
   const currencies = ['USD', 'EUR', 'GBP', 'JPY', 'CNY'];
+
+  // Fetch user profile data when user is available
+  useEffect(() => {
+    const fetchProfile = async () => {
+      if (user) {
+        const { data } = await supabase
+          .from('profiles')
+          .select('first_name, last_name')
+          .eq('id', user.id)
+          .single();
+        setProfile(data);
+      } else {
+        setProfile(null);
+      }
+    };
+
+    fetchProfile();
+  }, [user]);
 
   // Debounce helper
   function debounce(func, wait) {
@@ -154,7 +174,7 @@ const Header = () => {
                   <Button variant="ghost" size="sm" className="flex items-center space-x-2">
                     <User className="h-5 w-5" />
                     <span className="hidden md:block">
-                      {user.first_name || user.email?.split('@')[0]}
+                      {profile?.first_name || user.email?.split('@')[0]}
                     </span>
                   </Button>
                 </PopoverTrigger>
