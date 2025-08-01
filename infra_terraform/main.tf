@@ -463,6 +463,7 @@ resource "aws_launch_template" "mysql" {
     curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -
     apt-get install -y nodejs
     npm install -y express cors
+    npm install pg @types/pg
     node server.js &
     docker run -d \
       -e POSTGRES_DB=wordpress \
