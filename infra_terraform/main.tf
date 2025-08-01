@@ -464,11 +464,11 @@ resource "aws_launch_template" "mysql" {
     apt-get install -y nodejs
     npm install -y express cors
     node server.js &
-    docker run -d -e MYSQL_ROOT_PASSWORD=rootpassword \
-               -e MYSQL_DATABASE=wordpress \
-               -e MYSQL_USER=wordpress \
-               -e MYSQL_PASSWORD=wordpress \
-               -p 3306:3306 mysql:5.7
+    docker run -d \
+      -e POSTGRES_DB=wordpress \
+      -e POSTGRES_USER=wordpress \
+      -e POSTGRES_PASSWORD=rootpassword \
+      -p 5432:5432 postgres:16
   EOF
   )
 }
