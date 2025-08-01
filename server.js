@@ -1,11 +1,35 @@
 import express from 'express';
 import cors from 'cors';
+import pkg from 'pg';
+const { Pool } = pkg;
 
 const app = express();
 const PORT = 3001;
 
 app.use(cors()); // Allow requests from Vite dev server
 app.use(express.json());
+
+// PostgreSQL connection pool
+const pool = new Pool({
+  host: process.env.POSTGRES_HOST || 'your-aws-rds-endpoint.amazonaws.com',
+  port: process.env.POSTGRES_PORT || 5432,
+  database: process.env.POSTGRES_DB || 'your_database_name',
+  user: process.env.POSTGRES_USER || 'your_username',
+  password: process.env.POSTGRES_PASSWORD || 'your_password',
+  ssl: {
+    rejectUnauthorized: false // AWS RDS requires SSL
+  }
+});
+
+// Test database connection
+pool.connect((err, client, release) => {
+  if (err) {
+    console.error('❌ Error connecting to PostgreSQL:', err);
+  } else {
+    console.log('✅ Connected to PostgreSQL database');
+    release();
+  }
+});
 
 // Mock products with complete data structure
 const mockProducts = [
@@ -103,35 +127,60 @@ const mockProducts = [
 ];
 
 // Suggestion endpoint
-app.get('/api/search/suggestions', (req, res) => {
-  const q = req.query.q?.toLowerCase() || '';
-  const allSuggestions = ['laptop', 'lamp', 'laser printer', 'luggage', 'light bulb', 'lantern'];
-  const filtered = allSuggestions.filter(item => item.includes(q));
-  res.json({ suggestions: filtered });
+app.get('/api/search/suggestions', async (req, res) => {
+  try {
+    const q = req.query.q?.toLowerCase() || '';
+    const query = `
+      SELECT DISTINCT name 
+      FROM products 
+      WHERE LOWER(name) LIKE $1 OR LOWER(category) LIKE $1
+      LIMIT 10
+    `;
+    const result = await pool.query(query, [`%${q}%`]);
+    const suggestions = result.rows.map(row => row.name.toLowerCase());
+    res.json({ suggestions });
+  } catch (error) {
+    console.error('Database error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
 });
 
 // Search endpoint
-app.get('/api/search', (req, res) => {
-  const q = req.query.q?.toLowerCase() || '';
-  const limit = parseInt(req.query.limit) || 12;
-  const offset = parseInt(req.query.offset) || 0;
-  
-  // Filter products based on search query
-  const filteredProducts = mockProducts.filter(item => 
-    item.name.toLowerCase().includes(q) || 
-    item.category.toLowerCase().includes(q)
-  );
-  
-  // Apply pagination
-  const paginatedResults = filteredProducts.slice(offset, offset + limit);
-  
-  res.json({
-    query: q,
-    results: paginatedResults,
-    total: filteredProducts.length,
-    limit: limit,
-    offset: offset
-  });
+app.get('/api/search', async (req, res) => {
+  try {
+    const q = req.query.q?.toLowerCase() || '';
+    const limit = parseInt(req.query.limit) || 12;
+    const offset = parseInt(req.query.offset) || 0;
+    
+    // Count total results
+    const countQuery = `
+      SELECT COUNT(*) as total 
+      FROM products 
+      WHERE LOWER(name) LIKE $1 OR LOWER(category) LIKE $1
+    `;
+    const countResult = await pool.query(countQuery, [`%${q}%`]);
+    const total = parseInt(countResult.rows[0].total);
+    
+    // Get paginated results
+    const dataQuery = `
+      SELECT * FROM products 
+      WHERE LOWER(name) LIKE $1 OR LOWER(category) LIKE $1
+      ORDER BY id
+      LIMIT $2 OFFSET $3
+    `;
+    const dataResult = await pool.query(dataQuery, [`%${q}%`, limit, offset]);
+    
+    res.json({
+      query: q,
+      results: dataResult.rows,
+      total: total,
+      limit: limit,
+      offset: offset
+    });
+  } catch (error) {
+    console.error('Database error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
 });
 
 app.listen(PORT, () => {
