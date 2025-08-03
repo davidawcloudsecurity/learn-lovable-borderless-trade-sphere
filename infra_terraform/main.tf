@@ -463,7 +463,10 @@ resource "aws_launch_template" "mysql" {
     npm install -y express cors
     npm install pg @types/pg
     npm install dotenv
-    node server.js &
+    echo "POSTGRES_HOST=localhost" > .env
+    echo "POSTGRES_DB=wordpress" >> .env
+    echo "POSTGRES_USER=wordpress" >> .env
+    echo "POSTGRES_PASSWORD=rootpassword" >> .env
     apt install apt-transport-https ca-certificates curl software-properties-common
     curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
     add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu focal stable"
@@ -474,6 +477,7 @@ resource "aws_launch_template" "mysql" {
       -e POSTGRES_USER=wordpress \
       -e POSTGRES_PASSWORD=rootpassword \
       -p 5432:5432 postgres:16
+    node server.js
   EOF
   )
 }
