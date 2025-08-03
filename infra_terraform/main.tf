@@ -464,6 +464,7 @@ resource "aws_launch_template" "mysql" {
     apt-get install -y nodejs
     npm install -y express cors
     npm install pg @types/pg
+    npm install dotenv
     node server.js &
     apt update -y
     apt install apt-transport-https ca-certificates curl software-properties-common
