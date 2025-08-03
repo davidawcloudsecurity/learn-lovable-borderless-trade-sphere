@@ -19,9 +19,9 @@ const pool = new Pool({
   database: process.env.POSTGRES_DB || 'your_database_name',
   user: process.env.POSTGRES_USER || 'your_username',
   password: process.env.POSTGRES_PASSWORD || 'your_password',
-  ssl: {
-    rejectUnauthorized: false // AWS RDS requires SSL
-  }
+//  ssl: {
+//    rejectUnauthorized: false // AWS RDS requires SSL
+//  }
 });
 
 // Test database connection
