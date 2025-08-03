@@ -598,6 +598,12 @@ resource "null_resource" "upload_images_to_s3" {
       else
         echo "Images directory not found in the repository"
       fi
+      sudo yum update -y
+      curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -
+      sudo yum install -y nodejs
+      cd learn-lovable-borderless-trade-sphere/
+      npm i;npm run build;
+      aws s3 cp dist s3://${aws_s3_bucket.product_images.bucket} --recursive
     EOT
   }
   # Trigger re-execution if bucket changes
