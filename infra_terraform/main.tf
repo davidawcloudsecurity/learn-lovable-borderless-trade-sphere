@@ -606,6 +606,8 @@ resource "null_resource" "upload_images_to_s3" {
       cd learn-lovable-borderless-trade-sphere/
       sudo npm i;sudo npm run build;
       aws s3 cp dist s3://${aws_s3_bucket.product_images.bucket} --recursive
+      cd /home
+      sudo rm -rf learn-lovable-borderless-trade-sphere
     EOT
   }
   # Trigger re-execution if bucket changes
