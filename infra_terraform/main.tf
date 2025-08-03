@@ -455,8 +455,6 @@ resource "aws_launch_template" "mysql" {
   user_data = base64encode(<<-EOF
     #!/bin/bash
     apt update -y
-    apt install -y docker.io
-    systemctl start docker
     git clone https://github.com/davidawcloudsecurity/learn-lovable-borderless-trade-sphere.git
     cd learn-lovable-borderless-trade-sphere/
     sed -i "s/localhost/$(hostname -I | awk '{print $1}')/g" server.js
@@ -466,7 +464,6 @@ resource "aws_launch_template" "mysql" {
     npm install pg @types/pg
     npm install dotenv
     node server.js &
-    apt update -y
     apt install apt-transport-https ca-certificates curl software-properties-common
     curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
     add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu focal stable"
