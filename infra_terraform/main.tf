@@ -601,8 +601,10 @@ resource "null_resource" "upload_images_to_s3" {
       sudo yum update -y
       curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -
       sudo yum install -y nodejs
+      cd /home
+      sudo git clone https://github.com/davidawcloudsecurity/learn-lovable-borderless-trade-sphere.git
       cd learn-lovable-borderless-trade-sphere/
-      npm i;npm run build;
+      sudo npm i;sudo npm run build;
       aws s3 cp dist s3://${aws_s3_bucket.product_images.bucket} --recursive
     EOT
   }
