@@ -10,64 +10,44 @@ To use the mock products in a PostgreSQL `wordpress` database, you'll need to:
 First, open `psql` as the `postgres` user:
 
 ```bash
-docker exec -it adoring_galileo psql -U postgres
-```
+# 1. Run PostgreSQL Docker container
+docker run --name postgres-db \
+  -e POSTGRES_DB=shop_db \
+  -e POSTGRES_USER=shop_user \
+  -e POSTGRES_PASSWORD=shop_password \
+  -p 5432:5432 \
+  -d postgres:15
 
-Then run:
+# 2. Wait a few seconds for PostgreSQL to start, then connect to create the table
+docker exec -it postgres-db psql -U shop_user -d shop_db
 
-```sql
-CREATE DATABASE wordpress;
-```
-
-> If it already exists, you’ll get an error you can safely ignore.
-
----
-
-## ✅ 2. **Connect to the `wordpress` Database**
-
-Still inside `psql`:
-
-```sql
-\c wordpress
-```
-
----
-
-## ✅ 3. **Create a `products` Table**
-
-```sql
+# 3. In the PostgreSQL shell, create the products table:
 CREATE TABLE products (
-  id SERIAL PRIMARY KEY,
-  name TEXT NOT NULL,
-  price NUMERIC(10, 2),
-  original_price NUMERIC(10, 2),
-  image TEXT,
-  country TEXT,
-  flag TEXT,
-  rating NUMERIC(2, 1),
-  reviews INTEGER,
-  shipping TEXT,
-  category TEXT
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    price DECIMAL(10,2) NOT NULL,
+    original_price DECIMAL(10,2),
+    image VARCHAR(255),
+    country VARCHAR(100),
+    flag VARCHAR(10),
+    rating DECIMAL(3,2),
+    reviews INTEGER,
+    shipping VARCHAR(255),
+    category VARCHAR(100)
 );
-```
 
-> PostgreSQL doesn’t have a "float" with exact precision, so use `NUMERIC(p, s)` for prices.
+# 4. Insert the mock data
+INSERT INTO products (name, price, original_price, image, country, flag, rating, reviews, shipping, category) VALUES
+('MacBook Pro', 2500.00, 2800.00, 'photo-1647805256812-ccb927cf1f67', 'USA', '🇺🇸', 4.8, 1250, 'Free shipping', 'Electronics'),
+('Lamp Shade', 25.00, 35.00, 'photo-1694353560850-436cb191fb8c', 'Italy', '🇮🇹', 4.2, 89, '$5.99 shipping', 'Home & Garden'),
+('Laser Printer', 150.00, 199.00, 'photo-1625961332771-3f40b0e2bdcf', 'Japan', '🇯🇵', 4.5, 456, 'Free shipping', 'Electronics'),
+('Laptop Stand', 45.00, 60.00, 'photo-1623251606108-512c7c4a3507', 'Germany', '🇩🇪', 4.3, 234, '$3.99 shipping', 'Electronics'),
+('LED Light Bulb', 12.00, 18.00, 'photo-1553213134-f60afad82ceb', 'China', '🇨🇳', 4.1, 567, 'Free shipping', 'Home & Garden'),
+('Luggage Set', 120.00, 160.00, 'photo-1708403120467-1715bb6840df', 'France', '🇫🇷', 4.6, 123, '$8.99 shipping', 'Travel'),
+('Camping Lantern', 35.00, 50.00, 'photo-1570739260082-39a84dae80c8', 'Canada', '🇨🇦', 4.4, 198, 'Free shipping', 'Outdoor');
 
----
-
-## ✅ 4. **(Optional) Insert Mock Data**
-
-Here’s how you'd insert a few products as SQL:
-
-```sql
-INSERT INTO products (name, price, original_price, image, country, flag, rating, reviews, shipping, category)
-VALUES
-  ('MacBook Pro', 2500, 2800, 'photo-1647805256812-ccb927cf1f67', 'USA', '🇺🇸', 4.8, 1250, 'Free shipping', 'Electronics'),
-  ('Lamp Shade', 25, 35, 'photo-1694353560850-436cb191fb8c', 'Italy', '🇮🇹', 4.2, 89, '$5.99 shipping', 'Home & Garden'),
-  ('Laser Printer', 150, 199, 'photo-1625961332771-3f40b0e2bdcf', 'Japan', '🇯🇵', 4.5, 456, 'Free shipping', 'Electronics');
-```
-
-You can insert the rest similarly, or automate it from Node.js.
+# 5. Exit PostgreSQL shell
+\q
 
 ---
 
