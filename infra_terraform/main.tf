@@ -617,6 +617,24 @@ resource "null_resource" "upload_images_to_s3" {
   }
 }
 
+# Cache Policies (predefined by AWS - best to use these)
+data "aws_cloudfront_cache_policy" "caching_optimized" {
+  name = "Managed-CachingOptimized"
+}
+
+data "aws_cloudfront_cache_policy" "no_cache" {
+  name = "Managed-CachingDisabled"
+}
+
+# Origin Request Policies
+data "aws_cloudfront_origin_request_policy" "all_viewer" {
+  name = "Managed-AllViewer"
+}
+
+data "aws_cloudfront_origin_request_policy" "cors_s3" {
+  name = "Managed-CORS-S3Origin"
+}
+
 # CloudFront Origin Access Identity for S3
 resource "aws_cloudfront_origin_access_identity" "s3_oai" {
   comment = "OAI for ${aws_s3_bucket.product_images.bucket}"
@@ -675,6 +693,8 @@ resource "aws_cloudfront_distribution" "web_distribution" {
     allowed_methods  = ["GET", "HEAD", "OPTIONS"]
     cached_methods   = ["GET", "HEAD"]
     target_origin_id = "S3-${aws_s3_bucket.product_images.bucket}"
+    cache_policy_id        = data.aws_cloudfront_cache_policy.caching_optimized.id
+    origin_request_policy_id = data.aws_cloudfront_origin_request_policy.cors_s3.id
 
     forwarded_values {
       query_string = false
@@ -698,6 +718,8 @@ resource "aws_cloudfront_distribution" "web_distribution" {
     allowed_methods  = ["GET", "HEAD", "OPTIONS", "POST", "PUT", "PATCH", "DELETE"]
     cached_methods   = ["GET", "HEAD"]
     target_origin_id = "ALB-${aws_lb.example.name}"
+    cache_policy_id        = data.aws_cloudfront_cache_policy.no_cache.id
+    origin_request_policy_id = data.aws_cloudfront_origin_request_policy.all_viewer.id
 
     forwarded_values {
       query_string = true
