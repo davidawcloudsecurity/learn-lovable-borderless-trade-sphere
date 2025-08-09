@@ -390,7 +390,7 @@ resource "aws_lb_listener_rule" "api_rule" {
     }
   }
 }
-
+/*
 # WORDPRESS LAUNCH TEMPLATE
 resource "aws_launch_template" "wordpress" {
   name_prefix   = "wordpress-"
@@ -430,7 +430,7 @@ resource "aws_launch_template" "wordpress" {
   EOF
   )
 }
-
+*/
 # MYSQL LAUNCH TEMPLATE
 resource "aws_launch_template" "mysql" {
   name_prefix   = "mysql-"
@@ -481,7 +481,7 @@ resource "aws_launch_template" "mysql" {
   EOF
   )
 }
-
+/*
 # WORDPRESS AUTOSCALING GROUP
 resource "aws_autoscaling_group" "wordpress" {
   name                = "wordpress-asg"
@@ -507,7 +507,7 @@ resource "aws_autoscaling_group" "wordpress" {
     create_before_destroy = true
   }
 }
-
+*/
 # MYSQL AUTOSCALING GROUP
 resource "aws_autoscaling_group" "mysql" {
   name                = "mysql-asg"
