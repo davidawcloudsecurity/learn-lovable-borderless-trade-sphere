@@ -391,6 +391,7 @@ resource "aws_lb_listener_rule" "api_rule" {
   }
 }
 
+/* remove because using s3 and cloudfront
 # WORDPRESS LAUNCH TEMPLATE
 resource "aws_launch_template" "wordpress" {
   name_prefix   = "wordpress-"
@@ -430,6 +431,7 @@ resource "aws_launch_template" "wordpress" {
   EOF
   )
 }
+*/
 
 # MYSQL LAUNCH TEMPLATE
 resource "aws_launch_template" "mysql" {
