@@ -617,6 +617,123 @@ resource "null_resource" "upload_images_to_s3" {
   }
 }
 
+# CloudFront Origin Access Identity for S3
+resource "aws_cloudfront_origin_access_identity" "s3_oai" {
+  comment = "OAI for ${aws_s3_bucket.product_images.bucket}"
+}
+
+# Update S3 bucket policy to allow CloudFront access
+resource "aws_s3_bucket_policy" "cloudfront_access" {
+  bucket = aws_s3_bucket.product_images.id
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect    = "Allow"
+        Principal = {
+          AWS = aws_cloudfront_origin_access_identity.s3_oai.iam_arn
+        }
+        Action    = "s3:GetObject"
+        Resource  = "${aws_s3_bucket.product_images.arn}/*"
+      }
+    ]
+  })
+}
+
+# CloudFront Distribution with both ALB and S3 origins
+resource "aws_cloudfront_distribution" "web_distribution" {
+  origin {
+    domain_name = aws_lb.example.dns_name
+    origin_id   = "ALB-${aws_lb.example.name}"
+
+    custom_origin_config {
+      http_port              = 80
+      https_port             = 443
+      origin_protocol_policy = "http-only"
+      origin_ssl_protocols   = ["TLSv1.2"]
+    }
+  }
+
+  origin {
+    domain_name = aws_s3_bucket.product_images.bucket_regional_domain_name
+    origin_id   = "S3-${aws_s3_bucket.product_images.bucket}"
+
+    s3_origin_config {
+      origin_access_identity = aws_cloudfront_origin_access_identity.s3_oai.cloudfront_access_identity_path
+    }
+  }
+
+  enabled             = true
+  is_ipv6_enabled     = true
+  comment             = "CloudFront distribution for web application and static assets"
+  default_root_object = "index.html"
+
+  aliases = [] # Add your custom domain here if you have one
+
+  default_cache_behavior {
+    allowed_methods  = ["DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT"]
+    cached_methods   = ["GET", "HEAD"]
+    target_origin_id = "ALB-${aws_lb.example.name}"
+
+    forwarded_values {
+      query_string = true
+      headers      = ["*"]
+
+      cookies {
+        forward = "all"
+      }
+    }
+
+    viewer_protocol_policy = "redirect-to-https"
+    min_ttl                = 0
+    default_ttl            = 0 # No caching for dynamic content by default
+    max_ttl                = 0
+  }
+
+  # Cache behavior for static assets from S3
+  ordered_cache_behavior {
+    path_pattern     = "/assets/*"
+    allowed_methods  = ["GET", "HEAD", "OPTIONS"]
+    cached_methods   = ["GET", "HEAD"]
+    target_origin_id = "S3-${aws_s3_bucket.product_images.bucket}"
+
+    forwarded_values {
+      query_string = false
+      headers      = ["Origin"]
+
+      cookies {
+        forward = "none"
+      }
+    }
+
+    viewer_protocol_policy = "redirect-to-https"
+    min_ttl                = 0
+    default_ttl            = 86400 # 1 day cache for static assets
+    max_ttl                = 31536000 # 1 year maximum
+    compress               = true
+  }
+
+  price_class = "PriceClass_100"
+
+  restrictions {
+    geo_restriction {
+      restriction_type = "none"
+    }
+  }
+
+  viewer_certificate {
+    cloudfront_default_certificate = true
+    # Uncomment if using custom domain:
+    # acm_certificate_arn = "arn:aws:acm:us-east-1:123456789012:certificate/..."
+    # ssl_support_method = "sni-only"
+  }
+
+  depends_on = [
+    aws_lb.example,
+    aws_s3_bucket_policy.cloudfront_access
+  ]
+}
+
 /* remove local instance
 # EC2 Instances
 resource "aws_instance" "nginx" {
@@ -752,3 +869,12 @@ output "seeds" {
   value = [aws_instance.nginx.private_ip, aws_instance.wordpress.private_ip, aws_instance.mysql.private_ip]
 }
 */
+
+# Outputs
+output "cloudfront_domain" {
+  value = aws_cloudfront_distribution.web_distribution.domain_name
+}
+
+output "s3_assets_url" {
+  value = "https://${aws_cloudfront_distribution.web_distribution.domain_name}/assets/"
+}
