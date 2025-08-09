@@ -41,7 +41,7 @@ const AllProducts = () => {
     
     try {
       const offset = (page - 1) * productsPerPage;
-      const response = await fetch(`http://localhost:3001/api/search?q=&limit=${productsPerPage}&offset=${offset}`);
+      const response = await fetch(`/api/search?q=&limit=${productsPerPage}&offset=${offset}`);
       
       if (!response.ok) {
         throw new Error('Failed to fetch products');
