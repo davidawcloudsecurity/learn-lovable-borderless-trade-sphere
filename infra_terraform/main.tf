@@ -695,7 +695,7 @@ resource "aws_cloudfront_distribution" "web_distribution" {
     target_origin_id = "S3-${aws_s3_bucket.product_images.bucket}"
     cache_policy_id        = "658327ea-f89d-4fab-a63d-7e88639e58f6" # Managed-CachingOptimized
     origin_request_policy_id = "88a5eaf4-2fd4-4709-b370-b4c650ea3fcf" # Managed-CORS-S3Origin
-
+/*
     forwarded_values {
       query_string = false
       headers      = ["Origin"]
@@ -704,12 +704,13 @@ resource "aws_cloudfront_distribution" "web_distribution" {
         forward = "none"
       }
     }
-
+*/
     viewer_protocol_policy = "allow-all" # Changed to allow both HTTP and HTTPS
-    min_ttl                = 0
+/*    min_ttl                = 0
     default_ttl            = 3600
     max_ttl                = 86400
     compress               = true
+*/
   }
 
   # API routes to ALB
@@ -720,7 +721,7 @@ resource "aws_cloudfront_distribution" "web_distribution" {
     target_origin_id = "ALB-${aws_lb.example.name}"
     cache_policy_id        = "4135ea2d-6df8-44a3-9df3-4b5a84be39ad" # Managed-CachingDisabled
     origin_request_policy_id = "216adef6-5c7f-47e4-b989-5492eafa07d3" # Managed-AllViewer
-
+/*
     forwarded_values {
       query_string = true
       headers      = ["*"]
@@ -729,11 +730,12 @@ resource "aws_cloudfront_distribution" "web_distribution" {
         forward = "all"
       }
     }
-
+*/
     viewer_protocol_policy = "allow-all" # Changed to allow both HTTP and HTTPS
-    min_ttl                = 0
+/*    min_ttl                = 0
     default_ttl            = 0 # No caching for API by default
     max_ttl                = 0
+*/
   }
 
   price_class = "PriceClass_100"
