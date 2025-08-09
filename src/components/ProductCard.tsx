@@ -1,7 +1,8 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { ShoppingCart, Package } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from '@/components/ui/dialog';
+import { ShoppingCart, Package, X } from 'lucide-react';
 
 const S3_BUCKET_URL = import.meta.env.VITE_S3_BUCKET_URL || '';
 const S3_IMAGES_PATH = '/assets/images/';
@@ -31,6 +32,8 @@ const ProductCard: React.FC<ProductCardProps> = ({
   reviews,
   shipping
 }) => {
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+
   return (
     <div className="bg-white rounded-lg shadow-md hover:shadow-xl transition-all duration-300 hover:scale-105 group">
       <div className="relative overflow-hidden rounded-t-lg">
@@ -78,11 +81,31 @@ const ProductCard: React.FC<ProductCardProps> = ({
           <span>{shipping}</span>
         </div>
 
-        <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white">
+        <Button 
+          className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+          onClick={() => setIsDialogOpen(true)}
+        >
           <ShoppingCart className="h-4 w-4 mr-2" />
           Add to Cart
         </Button>
       </div>
+
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Online Orders Unavailable</DialogTitle>
+            <DialogClose className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
+              <X className="h-4 w-4" />
+              <span className="sr-only">Close</span>
+            </DialogClose>
+          </DialogHeader>
+          <div className="flex flex-col space-y-4 text-center">
+            <p className="text-muted-foreground">
+              We can't accept online orders right now. Please contact us to complete your purchase.
+            </p>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
