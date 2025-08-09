@@ -99,6 +99,9 @@ const ProductCard: React.FC<ProductCardProps> = ({
             <p className="text-muted-foreground">
               We can't accept online orders right now. Please contact us to complete your purchase.
             </p>
+            <Button onClick={() => setIsDialogOpen(false)} className="w-full">
+              Got it
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
