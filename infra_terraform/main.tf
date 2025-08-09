@@ -670,29 +670,8 @@ resource "aws_cloudfront_distribution" "web_distribution" {
 
   aliases = [] # Add your custom domain here if you have one
 
+  # Default behavior routes to S3
   default_cache_behavior {
-    allowed_methods  = ["DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT"]
-    cached_methods   = ["GET", "HEAD"]
-    target_origin_id = "ALB-${aws_lb.example.name}"
-
-    forwarded_values {
-      query_string = true
-      headers      = ["*"]
-
-      cookies {
-        forward = "all"
-      }
-    }
-
-    viewer_protocol_policy = "redirect-to-https"
-    min_ttl                = 0
-    default_ttl            = 0 # No caching for dynamic content by default
-    max_ttl                = 0
-  }
-
-  # Cache behavior for static assets from S3
-  ordered_cache_behavior {
-    path_pattern     = "/assets/*"
     allowed_methods  = ["GET", "HEAD", "OPTIONS"]
     cached_methods   = ["GET", "HEAD"]
     target_origin_id = "S3-${aws_s3_bucket.product_images.bucket}"
@@ -706,11 +685,33 @@ resource "aws_cloudfront_distribution" "web_distribution" {
       }
     }
 
-    viewer_protocol_policy = "redirect-to-https"
+    viewer_protocol_policy = "allow-all" # Changed to allow both HTTP and HTTPS
     min_ttl                = 0
-    default_ttl            = 86400 # 1 day cache for static assets
-    max_ttl                = 31536000 # 1 year maximum
+    default_ttl            = 3600
+    max_ttl                = 86400
     compress               = true
+  }
+
+  # API routes to ALB
+  ordered_cache_behavior {
+    path_pattern     = "/api/*"
+    allowed_methods  = ["GET", "HEAD", "OPTIONS", "POST", "PUT", "PATCH", "DELETE"]
+    cached_methods   = ["GET", "HEAD"]
+    target_origin_id = "ALB-${aws_lb.example.name}"
+
+    forwarded_values {
+      query_string = true
+      headers      = ["*"]
+
+      cookies {
+        forward = "all"
+      }
+    }
+
+    viewer_protocol_policy = "allow-all" # Changed to allow both HTTP and HTTPS
+    min_ttl                = 0
+    default_ttl            = 0 # No caching for API by default
+    max_ttl                = 0
   }
 
   price_class = "PriceClass_100"
