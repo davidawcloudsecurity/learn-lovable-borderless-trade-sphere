@@ -1,5 +1,6 @@
 
 import React from 'react';
+import { Link } from 'react-router-dom';
 import ProductCard from './ProductCard';
 
 const ProductGrid = () => {
@@ -119,9 +120,12 @@ const ProductGrid = () => {
         </div>
 
         <div className="text-center mt-12">
-          <button className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-lg font-semibold transition-colors">
+          <Link 
+            to="/products"
+            className="inline-block bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-lg font-semibold transition-colors"
+          >
             View All Products
-          </button>
+          </Link>
         </div>
       </div>
     </section>
