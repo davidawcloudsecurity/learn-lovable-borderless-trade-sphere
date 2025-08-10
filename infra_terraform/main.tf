@@ -517,7 +517,7 @@ resource "aws_launch_template" "mysql" {
       CONTAINER_NAME=$(docker ps --format '{{.Names}}')
     done
     # Execute the table creation
-    docker exec "${CONTAINER_NAME}" psql -U wordpress -d wordpress <<EOSQL
+    docker exec -i $CONTAINER_NAME" psql -U wordpress -d wordpress <<'EOSQL'
     CREATE TABLE IF NOT EXISTS products (
         id SERIAL PRIMARY KEY,
         name VARCHAR(255) NOT NULL,
