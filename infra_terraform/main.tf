@@ -498,6 +498,7 @@ resource "aws_launch_template" "mysql" {
     apt-cache policy docker-ce
     apt install docker-ce -y
     docker run -d \
+      --name postgres \
       -e POSTGRES_DB=wordpress \
       -e POSTGRES_USER=wordpress \
       -e POSTGRES_PASSWORD=rootpassword \
