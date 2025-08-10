@@ -502,6 +502,35 @@ resource "aws_launch_template" "mysql" {
       -e POSTGRES_USER=wordpress \
       -e POSTGRES_PASSWORD=rootpassword \
       -p 5432:5432 postgres:16
+    # Wait for Docker to be ready
+    while ! docker info >/dev/null 2>&1; do
+      echo "Waiting for Docker to start..."
+      sleep 2
+    done
+    
+    # Wait for PostgreSQL container to be ready
+    CONTAINER_NAME=$(docker ps --format '{{.Names}}' | grep 'postgres\|wordpress')
+    while [ -z "$CONTAINER_NAME" ]; do
+      echo "Waiting for PostgreSQL container..."
+      sleep 5
+      CONTAINER_NAME=$(docker ps --format '{{.Names}}' | grep 'postgres\|wordpress')
+    done
+    # Execute the table creation
+    docker exec "$CONTAINER_NAME" psql -U wordpress -d wordpress <<EOF
+    CREATE TABLE IF NOT EXISTS products (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        price DECIMAL(10,2) NOT NULL,
+        original_price DECIMAL(10,2),
+        image VARCHAR(255),
+        country VARCHAR(100),
+        flag VARCHAR(10),
+        rating DECIMAL(3,2),
+        reviews INTEGER,
+        shipping VARCHAR(255),
+        category VARCHAR(100)
+    );
+    EOF
     bash -c "node server.js >> /var/log/node-app.log 2>&1"
   EOF
   )
