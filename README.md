@@ -60,7 +60,7 @@ SELECT * FROM products;
 ```
 
 You should see your rows.
-### ✅ Optional: From Node.js
+### ✅ Optional: Next Phase for Checkout
 Great! You already have a solid `products` table that matches the data structure from your React components. Let's design the remaining tables to work with your existing schema and checkout flow. Here's how we can extend your database:
 
 ### 1. Orders Table (modified to match your checkout form)
