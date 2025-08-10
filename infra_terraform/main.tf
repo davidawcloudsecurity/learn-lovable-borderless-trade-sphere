@@ -510,14 +510,14 @@ resource "aws_launch_template" "mysql" {
     done
     
     # Wait for PostgreSQL container to be ready
-    CONTAINER_NAME=$(docker ps --format '{{.Names}}' | grep 'postgres\|wordpress')
+    CONTAINER_NAME=$(docker ps --format '{{.Names}}')
     while [ -z "$CONTAINER_NAME" ]; do
       echo "Waiting for PostgreSQL container..."
       sleep 5
-      CONTAINER_NAME=$(docker ps --format '{{.Names}}' | grep 'postgres\|wordpress')
+      CONTAINER_NAME=$(docker ps --format '{{.Names}}')
     done
     # Execute the table creation
-    docker exec "$CONTAINER_NAME" psql -U wordpress -d wordpress <<EOSQL
+    docker exec "${CONTAINER_NAME}" psql -U wordpress -d wordpress <<EOSQL
     CREATE TABLE IF NOT EXISTS products (
         id SERIAL PRIMARY KEY,
         name VARCHAR(255) NOT NULL,
@@ -533,7 +533,7 @@ resource "aws_launch_template" "mysql" {
     );
     EOSQL
     mv 100.MD insert_products.sql
-    sudo docker exec -i $(sudo docker ps --format '{{.Names}}' | grep 'postgres\|wordpress') psql -U wordpress -d wordpress < insert_products.sql
+    sudo docker exec -i $(sudo docker ps --format '{{.Names}}') psql -U wordpress -d wordpress < insert_products.sql
     bash -c "node server.js >> /var/log/node-app.log 2>&1"
   EOF
   )
