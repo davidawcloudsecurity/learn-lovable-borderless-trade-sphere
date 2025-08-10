@@ -456,7 +456,6 @@ resource "aws_launch_template" "wordpress" {
   )
 }
 */
-
 # MYSQL LAUNCH TEMPLATE
 resource "aws_launch_template" "mysql" {
   name_prefix   = "mysql-"
@@ -477,7 +476,7 @@ resource "aws_launch_template" "mysql" {
       instance_interruption_behavior = "terminate"    # or "stop" or "hibernate"
     }
   }
-}
+
 # Add the missing route table association for public_facing_1b subnet
 resource "aws_route_table_association" "public_facing_1b" {
   subnet_id      = aws_subnet.public_facing_1b.id
