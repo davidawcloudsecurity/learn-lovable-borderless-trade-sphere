@@ -479,45 +479,68 @@ resource "aws_launch_template" "mysql" {
 
   user_data = base64encode(<<-EOF
     #!/bin/bash
+    exec > >(tee /var/log/user-data.log) 2>&1
+    set -x
+    
     apt update -y
     git clone https://github.com/davidawcloudsecurity/learn-lovable-borderless-trade-sphere.git
     cd learn-lovable-borderless-trade-sphere/
-    sed -i "s/localhost/$(hostname -I | awk '{print $1}')/g" server.js
+    
+    # Replace localhost with actual IP
+    sed -i "s/localhost/\$(hostname -I | awk '{print \$1}')/g" server.js
+    
+    # Install Node.js
     curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -
     apt-get install -y nodejs
+    
+    # Install npm packages
     npm install -y express cors
     npm install pg @types/pg
     npm install dotenv
+    
+    # Create .env file
     echo "POSTGRES_HOST=localhost" > .env
     echo "POSTGRES_DB=wordpress" >> .env
     echo "POSTGRES_USER=wordpress" >> .env
     echo "POSTGRES_PASSWORD=rootpassword" >> .env
-    apt install apt-transport-https ca-certificates curl software-properties-common
+    
+    # Install Docker
+    apt install -y apt-transport-https ca-certificates curl software-properties-common
     curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
     add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu focal stable"
     apt-cache policy docker-ce
-    apt install docker-ce -y
-    docker run -d \
-      --name postgres \
-      -e POSTGRES_DB=wordpress \
-      -e POSTGRES_USER=wordpress \
-      -e POSTGRES_PASSWORD=rootpassword \
-      -p 5432:5432 postgres:16
+    apt install -y docker-ce
+    systemctl start docker
+    systemctl enable docker
+    
     # Wait for Docker to be ready
     while ! docker info >/dev/null 2>&1; do
       echo "Waiting for Docker to start..."
       sleep 2
     done
     
-    # Wait for PostgreSQL container to be ready
-    CONTAINER_NAME=$(docker ps --format '{{.Names}}')
-    while [ -z "$CONTAINER_NAME" ]; do
-      echo "Waiting for PostgreSQL container..."
+    # Start PostgreSQL container
+    docker run -d \
+      --name postgres \
+      -e POSTGRES_DB=wordpress \
+      -e POSTGRES_USER=wordpress \
+      -e POSTGRES_PASSWORD=rootpassword \
+      -p 5432:5432 \
+      postgres:16
+    
+    # Wait for PostgreSQL to be ready
+    echo "Waiting for PostgreSQL to be ready..."
+    for i in {1..30}; do
+      if docker exec postgres pg_isready -U wordpress -d wordpress > /dev/null 2>&1; then
+        echo "PostgreSQL is ready!"
+        break
+      fi
+      echo "Attempt $i/30: PostgreSQL not ready yet..."
       sleep 5
-      CONTAINER_NAME=$(docker ps --format '{{.Names}}')
     done
-    # Execute the table creation
-    docker exec -i $CONTAINER_NAME" psql -U wordpress -d wordpress <<'EOSQL'
+    
+    # Create products table
+    docker exec postgres psql -U wordpress -d wordpress -c "
     CREATE TABLE IF NOT EXISTS products (
         id SERIAL PRIMARY KEY,
         name VARCHAR(255) NOT NULL,
@@ -530,11 +553,17 @@ resource "aws_launch_template" "mysql" {
         reviews INTEGER,
         shipping VARCHAR(255),
         category VARCHAR(100)
-    );
-    EOSQL
-    mv 100.MD insert_products.sql
-    sudo docker exec -i $(sudo docker ps --format '{{.Names}}') psql -U wordpress -d wordpress < insert_products.sql
-    bash -c "node server.js >> /var/log/node-app.log 2>&1"
+    );"
+    
+    # Insert sample data if 100.MD exists
+    if [ -f "100.MD" ]; then
+      docker exec -i postgres psql -U wordpress -d wordpress < 100.MD
+    fi
+    
+    # Start the Node.js application
+    nohup node server.js > /var/log/node-app.log 2>&1 &
+    
+    echo "User data script completed successfully"
   EOF
   )
 }
