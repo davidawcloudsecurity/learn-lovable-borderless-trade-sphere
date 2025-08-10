@@ -477,7 +477,7 @@ resource "aws_launch_template" "mysql" {
       -e POSTGRES_USER=wordpress \
       -e POSTGRES_PASSWORD=rootpassword \
       -p 5432:5432 postgres:16
-    node server.js >> /var/log/node-app.log 2>&1
+    bash -c "node server.js >> /var/log/node-app.log 2>&1 &"
   EOF
   )
 }
