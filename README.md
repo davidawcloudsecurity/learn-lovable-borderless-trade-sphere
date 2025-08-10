@@ -60,6 +60,183 @@ SELECT * FROM products;
 ```
 
 You should see your rows.
+### ✅ Optional: From Node.js
+Great! You already have a solid `products` table that matches the data structure from your React components. Let's design the remaining tables to work with your existing schema and checkout flow. Here's how we can extend your database:
+
+### 1. Orders Table (modified to match your checkout form)
+```sql
+CREATE TABLE orders (
+    id SERIAL PRIMARY KEY,
+    order_number VARCHAR(20) UNIQUE NOT NULL DEFAULT CONCAT('ORD-', EXTRACT(EPOCH FROM NOW())::BIGINT),
+    first_name VARCHAR(100) NOT NULL,
+    last_name VARCHAR(100) NOT NULL,
+    email VARCHAR(255) NOT NULL,
+    phone VARCHAR(20),
+    address TEXT NOT NULL,
+    city VARCHAR(100) NOT NULL,
+    postal_code VARCHAR(20),
+    country VARCHAR(100),
+    subtotal DECIMAL(10,2) NOT NULL,
+    shipping_cost DECIMAL(10,2) NOT NULL DEFAULT 5.99,
+    tax_amount DECIMAL(10,2) NOT NULL,
+    total_amount DECIMAL(10,2) NOT NULL,
+    payment_status VARCHAR(20) NOT NULL DEFAULT 'pending',
+    status VARCHAR(20) NOT NULL DEFAULT 'processing',
+    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+```
+
+### 2. Order Items Table (links to your products)
+```sql
+CREATE TABLE order_items (
+    id SERIAL PRIMARY KEY,
+    order_id INTEGER NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+    product_id INTEGER REFERENCES products(id) ON DELETE SET NULL,
+    quantity INTEGER NOT NULL DEFAULT 1,
+    unit_price DECIMAL(10,2) NOT NULL,
+    original_price DECIMAL(10,2),
+    created_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+```
+
+### 3. Payments Table (secure payment handling)
+```sql
+CREATE TABLE payments (
+    id SERIAL PRIMARY KEY,
+    order_id INTEGER NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+    amount DECIMAL(10,2) NOT NULL,
+    payment_method VARCHAR(50) NOT NULL,
+    transaction_id VARCHAR(100),
+    card_last4 VARCHAR(4),
+    status VARCHAR(20) NOT NULL DEFAULT 'pending',
+    created_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+```
+
+### Key Improvements for Your System:
+
+1. **Order Number Generation**:
+   - Automatically generates unique order numbers like "ORD-1700000000"
+
+2. **Relationships**:
+   - `order_items` links to your existing `products` table
+   - Cascading deletes ensure data integrity
+
+3. **Tax Calculation**:
+   - Your frontend calculates tax (8%) - we store the exact amount
+
+4. **Status Tracking**:
+   - Both payment and order statuses are tracked
+
+### Sample Insert Query for Checkout:
+```sql
+-- Begin transaction
+BEGIN;
+
+-- 1. Create the order
+INSERT INTO orders (
+    first_name, last_name, email, phone,
+    address, city, postal_code, country,
+    subtotal, tax_amount, total_amount
+) VALUES (
+    'John', 'Doe', 'john@example.com', '+15551234567',
+    '123 Main St', 'New York', '10001', 'United States',
+    49.99, 4.47, 60.45
+) RETURNING id;
+
+-- 2. Add order items (using the returned order_id)
+INSERT INTO order_items (
+    order_id, product_id, quantity, unit_price, original_price
+) VALUES (
+    1,  -- This would come from the RETURNING above
+    5,  -- Product ID from your products table
+    1,
+    49.99,
+    59.99
+);
+
+-- 3. Record payment attempt
+INSERT INTO payments (
+    order_id, amount, payment_method, card_last4
+) VALUES (
+    1,
+    60.45,
+    'credit_card',
+    '4242'  -- Last 4 digits from your form
+);
+
+-- Commit if all succeeds
+COMMIT;
+```
+
+### Backend Integration (Node.js/Express Example):
+```typescript
+// POST /api/orders
+router.post('/', async (req, res) => {
+  const { customer, product, payment } = req.body;
+  
+  try {
+    const order = await pool.query(
+      `INSERT INTO orders (
+        first_name, last_name, email, phone,
+        address, city, postal_code, country,
+        subtotal, tax_amount, total_amount
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+      RETURNING id`,
+      [
+        customer.firstName, customer.lastName, customer.email, customer.phone,
+        customer.address, customer.city, customer.postalCode, customer.country,
+        product.price, (product.price + 5.99) * 0.08,  // Tax
+        product.price + 5.99 + (product.price + 5.99) * 0.08  // Total
+      ]
+    );
+
+    await pool.query(
+      `INSERT INTO order_items (
+        order_id, product_id, unit_price, original_price
+      ) VALUES ($1, $2, $3, $4)`,
+      [order.rows[0].id, product.id, product.price, product.originalPrice]
+    );
+
+    res.status(201).json({ orderId: order.rows[0].id });
+  } catch (err) {
+    res.status(500).json({ error: 'Order processing failed' });
+  }
+});
+```
+
+### Frontend Modifications:
+Update your `handleAddToCart` in `productcard.tsx` to:
+```typescript
+const handleAddToCart = async () => {
+  try {
+    const response = await fetch('/api/cart', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        productId: id,
+        quantity: 1
+      })
+    });
+    navigate('/checkout');
+  } catch (error) {
+    toast.error('Failed to add to cart');
+  }
+};
+```
+
+This design gives you a complete order processing system that:
+1. Preserves your existing product structure
+2. Handles guest checkouts (no user account required)
+3. Maintains proper relationships between tables
+4. Tracks payment and order status
+
+Would you like me to add any specific features like:
+- User accounts/login system
+- Inventory management
+- Discount/promo code support
+- Shipping method options?
 
 ---
 
