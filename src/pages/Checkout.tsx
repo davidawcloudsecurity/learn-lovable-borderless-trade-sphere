@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, CreditCard, MapPin, User, Mail, Phone } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
 interface CheckoutFormData {
   firstName: string;
@@ -23,10 +23,25 @@ interface CheckoutFormData {
   cardName: string;
 }
 
+interface ProductData {
+  id: string;
+  name: string;
+  price: number;
+  originalPrice?: number;
+  image: string;
+  country: string;
+  flag: string;
+  rating: number;
+  reviews: number;
+  shipping: string;
+}
+
 const Checkout = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  const [productData, setProductData] = useState<ProductData | null>(null);
   const [formData, setFormData] = useState<CheckoutFormData>({
     firstName: "",
     lastName: "",
@@ -41,6 +56,26 @@ const Checkout = () => {
     cvv: "",
     cardName: "",
   });
+
+  useEffect(() => {
+    // Extract product data from URL parameters
+    const productId = searchParams.get('productId');
+    if (productId) {
+      const product: ProductData = {
+        id: productId,
+        name: searchParams.get('productName') || '',
+        price: parseFloat(searchParams.get('productPrice') || '0'),
+        originalPrice: searchParams.get('originalPrice') ? parseFloat(searchParams.get('originalPrice')!) : undefined,
+        image: searchParams.get('productImage') || '',
+        country: searchParams.get('productCountry') || '',
+        flag: searchParams.get('productFlag') || '',
+        rating: parseFloat(searchParams.get('productRating') || '0'),
+        reviews: parseInt(searchParams.get('productReviews') || '0'),
+        shipping: searchParams.get('productShipping') || '',
+      };
+      setProductData(product);
+    }
+  }, [searchParams]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -277,44 +312,69 @@ const Checkout = () => {
                 <CardTitle>Order Summary</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {/* Sample Product */}
-                <div className="flex items-start gap-4">
-                  <img
-                    src="/placeholder.png"
-                    alt="Product"
-                    className="w-16 h-16 object-cover rounded-md border"
-                  />
-                  <div className="flex-1">
-                    <h3 className="font-medium text-foreground">Sample Product</h3>
-                    <p className="text-sm text-muted-foreground">Color: Black, Size: M</p>
-                    <p className="text-sm text-muted-foreground">Qty: 1</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-medium">$49.99</p>
-                  </div>
-                </div>
+                {productData ? (
+                  <>
+                    {/* Actual Product */}
+                    <div className="flex items-start gap-4">
+                      <img
+                        src={`/assets/images/${productData.image}`}
+                        alt={productData.name}
+                        className="w-16 h-16 object-cover rounded-md border"
+                      />
+                      <div className="flex-1">
+                        <h3 className="font-medium text-foreground">{productData.name}</h3>
+                        <p className="text-sm text-muted-foreground">
+                          {productData.flag} {productData.country}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          ⭐ {productData.rating} ({productData.reviews} reviews)
+                        </p>
+                        <p className="text-sm text-muted-foreground">Qty: 1</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-medium">${productData.price}</p>
+                        {productData.originalPrice && (
+                          <p className="text-sm text-muted-foreground line-through">
+                            ${productData.originalPrice}
+                          </p>
+                        )}
+                      </div>
+                    </div>
 
-                <Separator />
+                    <Separator />
 
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span>Subtotal</span>
-                    <span>$49.99</span>
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span>Subtotal</span>
+                        <span>${productData.price}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span>Shipping</span>
+                        <span>$5.99</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span>Tax</span>
+                        <span>${((productData.price + 5.99) * 0.08).toFixed(2)}</span>
+                      </div>
+                      <Separator />
+                      <div className="flex justify-between font-semibold text-lg">
+                        <span>Total</span>
+                        <span>${(productData.price + 5.99 + (productData.price + 5.99) * 0.08).toFixed(2)}</span>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <div className="text-center py-8">
+                    <p className="text-muted-foreground">No product selected</p>
+                    <Button
+                      variant="outline"
+                      onClick={() => navigate('/')}
+                      className="mt-4"
+                    >
+                      Browse Products
+                    </Button>
                   </div>
-                  <div className="flex justify-between text-sm">
-                    <span>Shipping</span>
-                    <span>$5.99</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span>Tax</span>
-                    <span>$4.40</span>
-                  </div>
-                  <Separator />
-                  <div className="flex justify-between font-semibold text-lg">
-                    <span>Total</span>
-                    <span>$60.38</span>
-                  </div>
-                </div>
+                )}
 
                 <Button
                   onClick={handleSubmit}
