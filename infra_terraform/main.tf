@@ -146,6 +146,31 @@ resource "aws_route_table_association" "public_facing" {
   route_table_id = aws_route_table.public_facing.id
 }
 
+# Add missing route table association for public_facing_1b
+resource "aws_route_table_association" "public_facing_1b" {
+  subnet_id      = aws_subnet.public_facing_1b.id
+  route_table_id = aws_route_table.public_facing.id
+}
+
+# Add a second private subnet in us-east-1b for high availability
+resource "aws_subnet" "private_db_1b" {
+  vpc_id                  = aws_vpc.main.id
+  cidr_block              = "10.0.5.0/24"
+  availability_zone       = "${var.region}b"
+  map_public_ip_on_launch = false
+
+  tags = {
+    Name = "private-db-subnet-1b"
+  }
+}
+
+# Route table association for the new subnet
+resource "aws_route_table_association" "private_db_1b" {
+  subnet_id      = aws_subnet.private_db_1b.id
+  route_table_id = aws_route_table.private_db.id
+}
+
+
 resource "aws_route_table_association" "private_app" {
   subnet_id      = aws_subnet.private_app.id
   route_table_id = aws_route_table.private_app.id
@@ -513,8 +538,11 @@ resource "aws_autoscaling_group" "mysql" {
   name                = "mysql-asg"
   min_size            = 1
   max_size            = 2
-  desired_capacity    = 1
-  vpc_zone_identifier = [aws_subnet.private_db.id]
+  desired_capacity    = 2  # Changed to 2 for HA
+  vpc_zone_identifier = [
+    aws_subnet.private_db.id,
+    aws_subnet.private_db_1b.id  # Add second subnet
+  ]
   health_check_type   = "EC2"
   target_group_arns   = [aws_lb_target_group.backend.arn]
 
