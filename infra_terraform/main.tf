@@ -476,164 +476,48 @@ resource "aws_launch_template" "mysql" {
       instance_interruption_behavior = "terminate"    # or "stop" or "hibernate"
     }
   }
-}
-# Add the missing route table association for public_facing_1b subnet
-resource "aws_route_table_association" "public_facing_1b" {
-  subnet_id      = aws_subnet.public_facing_1b.id
-  route_table_id = aws_route_table.public_facing.id
-}
-
-# Add a second private subnet in us-east-1b for high availability
-resource "aws_subnet" "private_db_1b" {
-  vpc_id                  = aws_vpc.main.id
-  cidr_block              = "10.0.7.0/24"
-  availability_zone       = "${var.region}b"
-  map_public_ip_on_launch = false
-
-  tags = {
-    Name = "private-db-subnet-1b"
-  }
-}
-
-# Route table association for the new private_db_1b subnet
-resource "aws_route_table_association" "private_db_1b" {
-  subnet_id      = aws_subnet.private_db_1b.id
-  route_table_id = aws_route_table.private_db.id
-}
-
-# Updated target group with deregistration settings but no health checks
-resource "aws_lb_target_group" "backend" {
-  name     = "backend-tg"
-  port     = 3001
-  protocol = "HTTP"
-  vpc_id   = aws_vpc.main.id
-
-  # Fixed deregistration delay
-  deregistration_delay = 30
-
-  # Disable health checks
-  health_check {
-    enabled = false
-  }
-
-  tags = {
-    Name = "backend-target-group"
-  }
-}
-
-# Updated ASG to use both AZs and increase capacity for reliability
-resource "aws_autoscaling_group" "mysql" {
-  name                = "mysql-asg"
-  min_size            = 1
-  max_size            = 3
-  desired_capacity    = 2  # Increased from 1 for reliability
-  vpc_zone_identifier = [
-    aws_subnet.private_db.id,      # us-east-1a
-    aws_subnet.private_db_1b.id    # us-east-1b
-  ]
-  health_check_type         = "ELB"  # Changed from EC2 to ELB for better health checking
-  health_check_grace_period = 300
-  target_group_arns         = [aws_lb_target_group.backend.arn]
-
-  launch_template {
-    id      = aws_launch_template.mysql.id
-    version = "$Latest"
-  }
-
-  tag {
-    key                 = "Name"
-    value               = "mysql-asg-instance"
-    propagate_at_launch = true
-  }
-
-  lifecycle {
-    create_before_destroy = true
-  }
-}
-
-# Update the launch template user_data to include /health endpoint
-resource "aws_launch_template" "mysql" {
-  name_prefix   = "mysql-"
-  image_id      = var.ami_ubuntu
-  instance_type = "t2.micro"
-  vpc_security_group_ids = [aws_security_group.private_db.id]
-  iam_instance_profile {
-    name = aws_iam_instance_profile.ec2_ssm_profile.name
-  }
-
-  instance_market_options {
-    market_type = "spot"
-    spot_options {
-      max_price                      = "0.02"
-      spot_instance_type             = "one-time"
-      instance_interruption_behavior = "terminate"
-    }
-  }
 
   user_data = base64encode(<<-EOF
     #!/bin/bash
-    exec > >(tee /var/log/user-data.log) 2>&1
-    set -x
-    
     apt update -y
     git clone https://github.com/davidawcloudsecurity/learn-lovable-borderless-trade-sphere.git
     cd learn-lovable-borderless-trade-sphere/
-    
-    # Replace localhost with actual IP
-    sed -i "s/localhost/\$(hostname -I | awk '{print \$1}')/g" server.js
-    
-    # Install Node.js
+    sed -i "s/localhost/$(hostname -I | awk '{print $1}')/g" server.js
     curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -
     apt-get install -y nodejs
-    
-    # Install npm packages
     npm install -y express cors
     npm install pg @types/pg
     npm install dotenv
-    
-    # Create .env file
     echo "POSTGRES_HOST=localhost" > .env
     echo "POSTGRES_DB=wordpress" >> .env
     echo "POSTGRES_USER=wordpress" >> .env
     echo "POSTGRES_PASSWORD=rootpassword" >> .env
-    
-    # Install Docker
-    apt install -y apt-transport-https ca-certificates curl software-properties-common
+    apt install apt-transport-https ca-certificates curl software-properties-common
     curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
     add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu focal stable"
     apt-cache policy docker-ce
-    apt install -y docker-ce
-    systemctl start docker
-    systemctl enable docker
-    
+    apt install docker-ce -y
+    docker run -d \
+      --name postgres \
+      -e POSTGRES_DB=wordpress \
+      -e POSTGRES_USER=wordpress \
+      -e POSTGRES_PASSWORD=rootpassword \
+      -p 5432:5432 postgres:16
     # Wait for Docker to be ready
     while ! docker info >/dev/null 2>&1; do
       echo "Waiting for Docker to start..."
       sleep 2
     done
     
-    # Start PostgreSQL container
-    docker run -d \
-      --name postgres \
-      -e POSTGRES_DB=wordpress \
-      -e POSTGRES_USER=wordpress \
-      -e POSTGRES_PASSWORD=rootpassword \
-      -p 5432:5432 \
-      postgres:16
-    
-    # Wait for PostgreSQL to be ready
-    echo "Waiting for PostgreSQL to be ready..."
-    for i in {1..30}; do
-      if docker exec postgres pg_isready -U wordpress -d wordpress > /dev/null 2>&1; then
-        echo "PostgreSQL is ready!"
-        break
-      fi
-      echo "Attempt $i/30: PostgreSQL not ready yet..."
+    # Wait for PostgreSQL container to be ready
+    CONTAINER_NAME=$(docker ps --format '{{.Names}}')
+    while [ -z "$CONTAINER_NAME" ]; do
+      echo "Waiting for PostgreSQL container..."
       sleep 5
+      CONTAINER_NAME=$(docker ps --format '{{.Names}}')
     done
-    
-    # Create products table
-    docker exec postgres psql -U wordpress -d wordpress -c "
+    # Execute the table creation
+    docker exec -i $CONTAINER_NAME" psql -U wordpress -d wordpress <<'EOSQL'
     CREATE TABLE IF NOT EXISTS products (
         id SERIAL PRIMARY KEY,
         name VARCHAR(255) NOT NULL,
@@ -646,17 +530,11 @@ resource "aws_launch_template" "mysql" {
         reviews INTEGER,
         shipping VARCHAR(255),
         category VARCHAR(100)
-    );"
-    
-    # Insert sample data if 100.MD exists
-    if [ -f "100.MD" ]; then
-      docker exec -i postgres psql -U wordpress -d wordpress < 100.MD
-    fi
-    
-    # Start the Node.js application
-    nohup node server.js > /var/log/node-app.log 2>&1 &
-    
-    echo "User data script completed successfully"
+    );
+    EOSQL
+    mv 100.MD insert_products.sql
+    sudo docker exec -i $(sudo docker ps --format '{{.Names}}') psql -U wordpress -d wordpress < insert_products.sql
+    bash -c "node server.js >> /var/log/node-app.log 2>&1"
   EOF
   )
 }
