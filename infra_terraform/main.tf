@@ -479,9 +479,13 @@ resource "aws_launch_template" "mysql" {
     npm install -y express cors
     npm install pg @types/pg
     npm install dotenv
-    
+
+	# If needed, strip the port from the endpoint
+	RDS_ENDPOINT="${aws_db_instance.postgres.endpoint}"
+	RDS_ENDPOINT="${RDS_ENDPOINT%:*}"  # Remove :port if present
+
     # Create .env file
-    echo "POSTGRES_HOST=${aws_db_instance.postgres.endpoint}" > .env
+    echo "POSTGRES_HOST=${RDS_ENDPOINT}" > .env
     echo "POSTGRES_DB=wordpress" >> .env
     echo "POSTGRES_USER=wordpress" >> .env
     echo "POSTGRES_PASSWORD=rootpassword" >> .env
@@ -513,7 +517,7 @@ resource "aws_launch_template" "mysql" {
     # Wait for PostgreSQL to be ready
     echo "Waiting for PostgreSQL to be ready..."
 	for i in {1..30}; do
-	  if docker exec postgres bash -c "PGPASSWORD=rootpassword pg_isready -h ${aws_db_instance.postgres.endpoint} -U wordpress -d wordpress" > /dev/null 2>&1; then
+	  if docker exec postgres bash -c "PGPASSWORD=rootpassword pg_isready -h ${RDS_ENDPOINT} -U wordpress -d wordpress" > /dev/null 2>&1; then
 	    echo "✅ PostgreSQL is ready!"
 	    break
 	  else
@@ -522,7 +526,7 @@ resource "aws_launch_template" "mysql" {
 	  fi
 	done
 
-docker exec -i postgres bash -c "PGPASSWORD=rootpassword psql -h ${aws_db_instance.postgres.endpoint} -U wordpress -d wordpress" << 'EOF'
+docker exec -i postgres bash -c "PGPASSWORD=rootpassword psql -h ${RDS_ENDPOINT} -U wordpress -d wordpress" << 'EOF'
 CREATE TABLE IF NOT EXISTS products (
     id SERIAL PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
@@ -537,11 +541,11 @@ CREATE TABLE IF NOT EXISTS products (
     category VARCHAR(100)
 );
 EOF
-	docker exec -i postgres bash -c "PGPASSWORD=rootpassword psql -h ${aws_db_instance.postgres.endpoint} -U wordpress -d wordpress -f create_table.sql"
+	docker exec -i postgres bash -c "PGPASSWORD=rootpassword psql -h ${RDS_ENDPOINT} -U wordpress -d wordpress -f create_table.sql"
     
     # Insert sample data if 100.MD exists
     if [ -f "100.MD" ]; then
-	  cat 100.MD | docker exec -i postgres bash -c "PGPASSWORD=rootpassword psql -h ${aws_db_instance.postgres.endpoint} -U wordpress -d wordpress"
+	  cat 100.MD | docker exec -i postgres bash -c "PGPASSWORD=rootpassword psql -h ${RDS_ENDPOINT} -U wordpress -d wordpress"
     fi
     
     # Start the Node.js application
