@@ -686,11 +686,6 @@ resource "aws_s3_bucket_policy" "public_read_policy" {
 # Null resource to download and upload images from GitHub repo to S3
 resource "null_resource" "upload_images_to_s3" {
 
-  triggers = {
-#    images_hash = filesha256("${path.module}/images/*")
-    bucket_name = aws_s3_bucket.images.bucket
-  }
-
   depends_on = [
     aws_s3_bucket.product_images,
     aws_s3_bucket_policy.public_read_policy
@@ -722,7 +717,8 @@ resource "null_resource" "upload_images_to_s3" {
   # Trigger re-execution if bucket changes
   triggers = {
     bucket_name = aws_s3_bucket.product_images.bucket
-    timestamp   = timestamp()
+#    images_hash = filesha256("${path.module}/images/*")
+    bucket_name = aws_s3_bucket.images.bucket
   }
 }
 
