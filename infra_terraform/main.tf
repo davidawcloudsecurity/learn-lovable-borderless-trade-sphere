@@ -522,22 +522,21 @@ resource "aws_launch_template" "mysql" {
 	  fi
 	done
 
-docker exec -i postgres bash -c "PGPASSWORD=rootpassword psql -h ${aws_db_instance.postgres.endpoint} -U wordpress -d wordpress" << 'EOF'
-CREATE TABLE IF NOT EXISTS products (
-    id SERIAL PRIMARY KEY,
-    name VARCHAR(255) NOT NULL,
-    price DECIMAL(10,2) NOT NULL,
-    original_price DECIMAL(10,2),
-    image VARCHAR(255),
-    country VARCHAR(100),
-    flag VARCHAR(10),
-    rating DECIMAL(3,2),
-    reviews INTEGER,
-    shipping VARCHAR(255),
-    category VARCHAR(100)
-);
-EOF
-	docker exec -i postgres bash -c "PGPASSWORD=rootpassword psql -h ${aws_db_instance.postgres.endpoint} -U wordpress -d wordpress -f create_table.sql"
+    # Create products table
+    docker exec postgres bash -c "PGPASSWORD=rootpassword psql -h ${aws_db_instance.postgres.endpoint} -U wordpress -d wordpress -c 
+    \"CREATE TABLE IF NOT EXISTS products (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        price DECIMAL(10,2) NOT NULL,
+        original_price DECIMAL(10,2),
+        image VARCHAR(255),
+        country VARCHAR(100),
+        flag VARCHAR(10),
+        rating DECIMAL(3,2),
+        reviews INTEGER,
+        shipping VARCHAR(255),
+        category VARCHAR(100)
+    );\""
     
     # Insert sample data if 100.MD exists
     if [ -f "100.MD" ]; then
@@ -718,7 +717,8 @@ resource "null_resource" "upload_images_to_s3" {
   # Trigger re-execution if bucket changes
   triggers = {
     bucket_name = aws_s3_bucket.product_images.bucket
-#    images_hash = filesha256("${path.module}/public/assets/images/*")
+#    images_hash = filesha256("${path.module}/images/*")
+    bucket_name = aws_s3_bucket.images.bucket
   }
 }
 
