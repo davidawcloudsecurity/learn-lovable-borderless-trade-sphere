@@ -597,7 +597,10 @@ resource "aws_autoscaling_group" "wordpress" {
 
 resource "aws_db_subnet_group" "postgres_subnet_group" {
   name       = "postgres-subnet-group"
-  subnet_ids = [aws_subnet.private_db.id]
+  subnet_ids = [
+	aws_subnet.private_app.id,
+	aws_subnet.private_db.id
+	]
 
   tags = {
     Name = "postgres-subnet-group"
