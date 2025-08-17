@@ -183,7 +183,7 @@ resource "aws_route_table_association" "private_db" {
 
 # Security Groups
 resource "aws_security_group" "public_facing" {
-  name        = "allow_http_ssh"
+  name        = "allow_http_https"
   description = "Allow HTTP and SSH inbound traffic"
   vpc_id      = aws_vpc.main.id
 
@@ -196,7 +196,7 @@ resource "aws_security_group" "public_facing" {
   }
 
   ingress {
-    description = "HTTP from anywhere"
+    description = "HTTPS from anywhere"
     from_port   = 443
     to_port     = 443
     protocol    = "tcp"
@@ -211,13 +211,13 @@ resource "aws_security_group" "public_facing" {
   }
 
   tags = {
-    Name = "allow_http_ssh"
+    Name = "allow_http_https"
   }
 }
 
 resource "aws_security_group" "private_app" {
-  name        = "allow_nginx"
-  description = "Allow HTTP inbound traffic within VPC"
+  name        = "allow_alb"
+  description = "Allow inbound traffic from ALB"
   vpc_id      = aws_vpc.main.id
 
   ingress {
@@ -230,22 +230,22 @@ resource "aws_security_group" "private_app" {
   }
 
   ingress {
-    description = "Setup to allow SSM"
+    description = "HTTPS from public subnet"
     from_port   = 443
     to_port     = 443
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
+    security_groups = [aws_security_group.public_facing.id]
   }
 
-  /* remove as it is on private_db
   ingress {
     description = "MYSQL/Aurora from private subnet"
-    from_port   = 3306
-    to_port     = 3306
+    from_port   = 3001
+    to_port     = 3001
     protocol    = "TCP"
-    self        = true
+#    self        = true
+    security_groups = [aws_security_group.public_facing.id]
   }
-*/
+
   egress {
     from_port   = 0
     to_port     = 0
@@ -259,7 +259,7 @@ resource "aws_security_group" "private_app" {
 }
 
 resource "aws_security_group" "private_db" {
-  name        = "allow_wordpress"
+  name        = "allow_backend"
   description = "Allow HTTP inbound traffic within VPC"
   vpc_id      = aws_vpc.main.id
 /* Exclude because using api
@@ -271,32 +271,22 @@ resource "aws_security_group" "private_db" {
     #    cidr_blocks = [aws_security_group.public.id]
     security_groups = [aws_security_group.private_app.id]
   }
-
-  ingress {
-    description = "Setup to allow SSM"
-    from_port   = 3001
-    to_port     = 3001
-    protocol    = "tcp"
-#    cidr_blocks = [aws_security_group.public.id]
-    security_groups = [aws_security_group.private_app.id]
-  } 
 */
   ingress {
     description = "Setup to allow SSM"
-    from_port   = 3001
-    to_port     = 3001
+    from_port   = 5432
+    to_port     = 5432
     protocol    = "tcp"
 #    cidr_blocks = [aws_security_group.public.id]
     security_groups = [aws_security_group.private_app.id]
-  }  
 
   ingress {
-    description = "MYSQL/Aurora from private subnet app tier"
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
+    description = "Allow HTTP inbound traffic within VPC"
+    from_port   = 5432
+    to_port     = 5432
+    protocol    = "tcp"
     self        = true
-  }
+  } 
 
   egress {
     description = "Outbound to all"
@@ -305,15 +295,6 @@ resource "aws_security_group" "private_db" {
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
-/*
-  egress {
-    description = "SSM from AWS"
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-*/
 
   tags = {
     Name = "allow_wordpress"
