@@ -499,7 +499,7 @@ resource "aws_launch_template" "mysql" {
     npm install dotenv
     
     # Create .env file
-    echo "POSTGRES_HOST=localhost" > .env
+    echo "POSTGRES_HOST=${aws_db_instance.postgres.endpoint}" > .env
     echo "POSTGRES_DB=wordpress" >> .env
     echo "POSTGRES_USER=wordpress" >> .env
     echo "POSTGRES_PASSWORD=rootpassword" >> .env
@@ -611,7 +611,6 @@ resource "aws_db_instance" "postgres" {
   allocated_storage    = 20
   storage_type         = "gp2"
   engine               = "postgres"
-#  engine_version       = "15.4"
   instance_class       = "db.t3.micro"
   db_name              = "wordpress"
   username             = "wordpress"
