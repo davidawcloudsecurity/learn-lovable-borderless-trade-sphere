@@ -540,7 +540,7 @@ CREATE TABLE IF NOT EXISTS products (
 EOL
 
     # Create products table on RDS
-    PGPASSWORD=rootpassword psql -h "${aws_db_instance.postgres.endpoint}" -U wordpress -d wordpress -f create_table.sql
+    docker exec -i postgres bash -c "PGPASSWORD=rootpassword psql -h ${aws_db_instance.postgres.endpoint} -U wordpress -d wordpress -f create_table.sql"
     
     # Insert sample data if 100.MD exists
     if [ -f "100.MD" ]; then
