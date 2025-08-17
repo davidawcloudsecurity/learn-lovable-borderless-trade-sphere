@@ -717,8 +717,7 @@ resource "null_resource" "upload_images_to_s3" {
   # Trigger re-execution if bucket changes
   triggers = {
     bucket_name = aws_s3_bucket.product_images.bucket
-#    images_hash = filesha256("${path.module}/images/*")
-    bucket_name = aws_s3_bucket.images.bucket
+    images_hash = filesha256("${path.module}/images/*")
   }
 }
 
