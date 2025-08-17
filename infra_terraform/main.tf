@@ -512,18 +512,19 @@ resource "aws_launch_template" "mysql" {
     
     # Wait for PostgreSQL to be ready
     echo "Waiting for PostgreSQL to be ready..."
-    for i in {1..30}; do
-      if docker exec postgres pg_isready -h ${aws_db_instance.postgres.endpoint} -U wordpress -d wordpress > /dev/null 2>&1; then
-        echo "PostgreSQL is ready!"
-        break
-      fi
-      echo "Attempt $i/30: PostgreSQL not ready yet..."
-      sleep 5
-    done
-    
+	for i in {1..30}; do
+	  if docker exec postgres bash -c "PGPASSWORD=rootpassword pg_isready -h ${aws_db_instance.postgres.endpoint} -U wordpress -d wordpress" > /dev/null 2>&1; then
+	    echo "✅ PostgreSQL is ready!"
+	    break
+	  else
+	    echo "⏳ Attempt $i/30: PostgreSQL not ready yet..."
+	    sleep 5
+	  fi
+	done
+
     # Create products table
-    docker exec postgres psql -h ${aws_db_instance.postgres.endpoint} -U wordpress -d wordpress -c "
-    CREATE TABLE IF NOT EXISTS products (
+    docker exec postgres bash -c "PGPASSWORD=rootpassword psql -h ${aws_db_instance.postgres.endpoint} -U wordpress -d wordpress -c 
+    \"CREATE TABLE IF NOT EXISTS products (
         id SERIAL PRIMARY KEY,
         name VARCHAR(255) NOT NULL,
         price DECIMAL(10,2) NOT NULL,
@@ -535,11 +536,11 @@ resource "aws_launch_template" "mysql" {
         reviews INTEGER,
         shipping VARCHAR(255),
         category VARCHAR(100)
-    );"
+    );\""
     
     # Insert sample data if 100.MD exists
     if [ -f "100.MD" ]; then
-      docker exec -i postgres psql -h ${aws_db_instance.postgres.endpoint} -U wordpress -d wordpress < 100.MD
+	  cat 100.MD | docker exec -i postgres bash -c "PGPASSWORD=rootpassword psql -h ${aws_db_instance.postgres.endpoint} -U wordpress -d wordpress"
     fi
     
     # Start the Node.js application
