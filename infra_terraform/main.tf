@@ -482,7 +482,7 @@ resource "aws_launch_template" "mysql" {
 
 	# If needed, strip the port from the endpoint
 	RDS_ENDPOINT="${aws_db_instance.postgres.endpoint}"
-	RDS_ENDPOINT="${RDS_ENDPOINT%:*}"  # Remove :port if present
+	RDS_ENDPOINT="${RDS_ENDPOINT%:*}"
 
     # Create .env file
     echo "POSTGRES_HOST=${RDS_ENDPOINT}" > .env
