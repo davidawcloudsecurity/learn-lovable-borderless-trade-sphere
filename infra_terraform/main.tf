@@ -594,6 +594,35 @@ resource "aws_autoscaling_group" "wordpress" {
   }
 }
 */
+
+resource "aws_db_subnet_group" "postgres_subnet_group" {
+  name       = "postgres-subnet-group"
+  subnet_ids = [aws_subnet.private_db.id]
+
+  tags = {
+    Name = "postgres-subnet-group"
+  }
+}
+
+resource "aws_db_instance" "postgres" {
+  allocated_storage    = 20
+  storage_type         = "gp2"
+  engine               = "postgres"
+  engine_version       = "15.4"
+  instance_class       = "db.t3.micro"
+  name                 = "postgresdb"
+  username             = "postgresuser"
+  password             = "postgrespassword"
+  db_subnet_group_name = aws_db_subnet_group.postgres_subnet_group.name
+  vpc_security_group_ids = [aws_security_group.private_db.id]
+  skip_final_snapshot  = true
+  publicly_accessible  = false
+
+  tags = {
+    Name = "postgres-instance"
+  }
+}
+
 # MYSQL AUTOSCALING GROUP
 resource "aws_autoscaling_group" "mysql" {
   name                = "mysql-asg"
