@@ -522,21 +522,25 @@ resource "aws_launch_template" "mysql" {
 	  fi
 	done
 
-    # Create products table
-    docker exec postgres bash -c "PGPASSWORD=rootpassword psql -h ${aws_db_instance.postgres.endpoint} -U wordpress -d wordpress -c 
-    \"CREATE TABLE IF NOT EXISTS products (
-        id SERIAL PRIMARY KEY,
-        name VARCHAR(255) NOT NULL,
-        price DECIMAL(10,2) NOT NULL,
-        original_price DECIMAL(10,2),
-        image VARCHAR(255),
-        country VARCHAR(100),
-        flag VARCHAR(10),
-        rating DECIMAL(3,2),
-        reviews INTEGER,
-        shipping VARCHAR(255),
-        category VARCHAR(100)
-    );\""
+    # Create SQL file for table creation
+    cat > create_table.sql << 'EOL'
+CREATE TABLE IF NOT EXISTS products (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    price DECIMAL(10,2) NOT NULL,
+    original_price DECIMAL(10,2),
+    image VARCHAR(255),
+    country VARCHAR(100),
+    flag VARCHAR(10),
+    rating DECIMAL(3,2),
+    reviews INTEGER,
+    shipping VARCHAR(255),
+    category VARCHAR(100)
+);
+EOL
+
+    # Create products table on RDS
+    PGPASSWORD=rootpassword psql -h "${aws_db_instance.postgres.endpoint}" -U wordpress -d wordpress -f create_table.sql
     
     # Insert sample data if 100.MD exists
     if [ -f "100.MD" ]; then
