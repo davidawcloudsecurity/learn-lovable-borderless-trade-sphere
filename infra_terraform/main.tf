@@ -287,7 +287,7 @@ resource "aws_security_group" "private_db" {
     to_port     = 3001
     protocol    = "tcp"
 #    cidr_blocks = [aws_security_group.public.id]
-    security_groups = [aws_security_group.public_facing.id]
+    security_groups = [aws_security_group.private_app.id]
   }  
 
   ingress {
@@ -299,13 +299,13 @@ resource "aws_security_group" "private_db" {
   }
 
   egress {
-    description = "SSM from AWS"
-    from_port   = 443
-    to_port     = 443
-    protocol    = "tcp"
+    description = "Outbound to all"
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
-
+/*
   egress {
     description = "SSM from AWS"
     from_port   = 80
@@ -313,6 +313,7 @@ resource "aws_security_group" "private_db" {
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
+*/
 
   tags = {
     Name = "allow_wordpress"
@@ -461,7 +462,7 @@ resource "aws_launch_template" "mysql" {
   name_prefix   = "mysql-"
   image_id      = var.ami_ubuntu
   instance_type = "t2.micro"
-  vpc_security_group_ids = [aws_security_group.private_db.id]
+  vpc_security_group_ids = [aws_security_group.private_app.id]
   iam_instance_profile {
     name = aws_iam_instance_profile.ec2_ssm_profile.name
   }
