@@ -242,7 +242,6 @@ resource "aws_security_group" "private_app" {
     from_port   = 3001
     to_port     = 3001
     protocol    = "TCP"
-#    self        = true
     security_groups = [aws_security_group.public_facing.id]
   }
 
@@ -279,6 +278,7 @@ resource "aws_security_group" "private_db" {
     protocol    = "tcp"
 #    cidr_blocks = [aws_security_group.public.id]
     security_groups = [aws_security_group.private_app.id]
+  }
 
   ingress {
     description = "Allow HTTP inbound traffic within VPC"
