@@ -459,14 +459,14 @@ resource "aws_launch_template" "mysql" {
     }
   }
 
-user_data = base64encode(<<-EOF
+	user_data = base64encode(<<-EOF
 #!/bin/bash
 exec > >(tee /var/log/user-data.log) 2>&1
 set -x
 
 apt update -y
-git clone https://github.com/davidawcloudsecurity/learn-lovable-borderless-trade-sphere.git
-cd learn-lovable-borderless-trade-sphere/
+git clone https://github.com/davidawcloudsecurity/learn-lovable-ecommerce.git
+cd learn-lovable-ecommerce/
 
 # Replace localhost with actual IP
 sed -i "s/localhost/\$(hostname -I | awk '{print \$1}')/g" server.js
@@ -482,7 +482,7 @@ npm install dotenv
 
 # If needed, strip the port from the endpoint
 RDS_ENDPOINT="${aws_db_instance.postgres.endpoint}"
-RDS_ENDPOINT="${RDS_ENDPOINT%:*}"  # Remove :port if present
+RDS_ENDPOINT="${RDS_ENDPOINT%:*}"
 
 # Create .env file
 echo "POSTGRES_HOST=${RDS_ENDPOINT}" > .env
