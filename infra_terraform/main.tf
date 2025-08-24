@@ -479,6 +479,8 @@ apt-get install -y nodejs
 npm install -y express cors
 npm install pg @types/pg
 npm install dotenv
+# adapt your Express app to AWS Lambda's format
+npm install @vendia/serverless-express
 
 # If needed, strip the port from the endpoint
 RDS_ENDPOINT="${aws_db_instance.postgres.endpoint}"
