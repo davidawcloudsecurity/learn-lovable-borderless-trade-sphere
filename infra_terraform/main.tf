@@ -485,7 +485,7 @@ RDS_ENDPOINT="${aws_db_instance.postgres.endpoint}"
 RDS_ENDPOINT=$(echo "$RDS_ENDPOINT" | cut -d: -f1)
 
 # Create .env file
-echo "POSTGRES_HOST=${RDS_ENDPOINT}" > .env
+echo "POSTGRES_HOST=$RDS_ENDPOINT" > .env
 echo "POSTGRES_DB=wordpress" >> .env
 echo "POSTGRES_USER=wordpress" >> .env
 echo "POSTGRES_PASSWORD=rootpassword" >> .env
