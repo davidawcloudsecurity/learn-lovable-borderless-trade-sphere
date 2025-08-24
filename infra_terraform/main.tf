@@ -542,14 +542,10 @@ docker exec postgres bash -c "PGPASSWORD=rootpassword psql -h terraform-20250824
 );\""
 
 # Insert sample data if 100.MD exists
-if [ -f "100.MD" ]; then
-  cat 100.MD | docker exec -i postgres bash -c "PGPASSWORD=rootpassword psql -h $RDS_ENDPOINT -U wordpress -d wordpress"
-fi
+cat ../100.MD | docker exec -i postgres bash -c "PGPASSWORD=rootpassword psql -h $RDS_ENDPOINT -U wordpress -d wordpress"
 
 # Start the Node.js application
 nohup node server.js > /var/log/node-app.log 2>&1 &
-
-echo "User data script completed successfully"
 	EOF
 }
 /*
