@@ -517,7 +517,7 @@ docker run -d \
 # Wait for PostgreSQL to be ready
 echo "Waiting for PostgreSQL to be ready..."
 for i in {1..30}; do
-  if docker exec postgres bash -c "PGPASSWORD=rootpassword pg_isready -h ${RDS_ENDPOINT} -U wordpress -d wordpress" > /dev/null 2>&1; then
+  if docker exec postgres bash -c "PGPASSWORD=rootpassword pg_isready -h $RDS_ENDPOINT -U wordpress -d wordpress" > /dev/null 2>&1; then
 	echo "✅ PostgreSQL is ready!"
 	break
   else
@@ -527,7 +527,7 @@ for i in {1..30}; do
 done
 
 # Create products table
-docker exec postgres bash -c "PGPASSWORD=rootpassword psql -h ${RDS_ENDPOINT} -U wordpress -d wordpress -c 
+docker exec postgres bash -c "PGPASSWORD=rootpassword psql -h $RDS_ENDPOINT -U wordpress -d wordpress -c 
 \"CREATE TABLE IF NOT EXISTS products (
 	id SERIAL PRIMARY KEY,
 	name VARCHAR(255) NOT NULL,
@@ -544,7 +544,7 @@ docker exec postgres bash -c "PGPASSWORD=rootpassword psql -h ${RDS_ENDPOINT} -U
 
 # Insert sample data if 100.MD exists
 if [ -f "100.MD" ]; then
-  cat 100.MD | docker exec -i postgres bash -c "PGPASSWORD=rootpassword psql -h ${RDS_ENDPOINT} -U wordpress -d wordpress"
+  cat 100.MD | docker exec -i postgres bash -c "PGPASSWORD=rootpassword psql -h $RDS_ENDPOINT -U wordpress -d wordpress"
 fi
 
 # Start the Node.js application
