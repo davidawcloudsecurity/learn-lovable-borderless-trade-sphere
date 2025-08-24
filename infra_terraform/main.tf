@@ -527,7 +527,7 @@ for i in {1..30}; do
 done
 
 # Create products table
-docker exec postgres bash -c "PGPASSWORD=rootpassword psql -h terraform-20250824061755152400000003.cxao6ceggj41.us-east-1.rds.amazonaws.com -U wordpress -d wordpress -c \"CREATE TABLE IF NOT EXISTS products (
+docker exec postgres bash -c "PGPASSWORD=rootpassword psql -h $RDS_ENDPOINT -U wordpress -d wordpress -c \"CREATE TABLE IF NOT EXISTS products (
     id SERIAL PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
     price DECIMAL(10,2) NOT NULL,
@@ -542,7 +542,9 @@ docker exec postgres bash -c "PGPASSWORD=rootpassword psql -h terraform-20250824
 );\""
 
 # Insert sample data if 100.MD exists
-cat ../100.MD | docker exec -i postgres bash -c "PGPASSWORD=rootpassword psql -h $RDS_ENDPOINT -U wordpress -d wordpress"
+if [ -f "../100.MD" ]; then
+  cat ../100.MD | docker exec -i postgres bash -c "PGPASSWORD=rootpassword psql -h $RDS_ENDPOINT -U wordpress -d wordpress"
+fi
 
 # Start the Node.js application
 nohup node server.js > /var/log/node-app.log 2>&1 &
