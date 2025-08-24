@@ -542,8 +542,8 @@ docker exec postgres bash -c "PGPASSWORD=rootpassword psql -h $RDS_ENDPOINT -U w
 );\""
 
 # Insert sample data if 100.MD exists
-if [ -f "../100.MD" ]; then
-  cat ../100.MD | docker exec -i postgres bash -c "PGPASSWORD=rootpassword psql -h $RDS_ENDPOINT -U wordpress -d wordpress"
+if [ -f "./100.MD" ]; then
+  cat ./100.MD | docker exec -i postgres bash -c "PGPASSWORD=rootpassword psql -h $RDS_ENDPOINT -U wordpress -d wordpress"
 fi
 
 # Start the Node.js application
