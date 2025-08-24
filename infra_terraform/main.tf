@@ -527,19 +527,18 @@ for i in {1..30}; do
 done
 
 # Create products table
-docker exec postgres bash -c "PGPASSWORD=rootpassword psql -h $RDS_ENDPOINT -U wordpress -d wordpress -c 
-\"CREATE TABLE IF NOT EXISTS products (
-	id SERIAL PRIMARY KEY,
-	name VARCHAR(255) NOT NULL,
-	price DECIMAL(10,2) NOT NULL,
-	original_price DECIMAL(10,2),
-	image VARCHAR(255),
-	country VARCHAR(100),
-	flag VARCHAR(10),
-	rating DECIMAL(3,2),
-	reviews INTEGER,
-	shipping VARCHAR(255),
-	category VARCHAR(100)
+docker exec postgres bash -c "PGPASSWORD=rootpassword psql -h terraform-20250824061755152400000003.cxao6ceggj41.us-east-1.rds.amazonaws.com -U wordpress -d wordpress -c \"CREATE TABLE IF NOT EXISTS products (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    price DECIMAL(10,2) NOT NULL,
+    original_price DECIMAL(10,2),
+    image VARCHAR(255),
+    country VARCHAR(100),
+    flag VARCHAR(10),
+    rating DECIMAL(3,2),
+    reviews INTEGER,
+    shipping VARCHAR(255),
+    category VARCHAR(100)
 );\""
 
 # Insert sample data if 100.MD exists
