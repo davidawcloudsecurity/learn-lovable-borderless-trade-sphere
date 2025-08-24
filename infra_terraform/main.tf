@@ -459,24 +459,33 @@ resource "aws_launch_template" "mysql" {
     }
   }
 
-  user_data = base64encode(<<-EOF
+user_data = base64encode(<<-EOF
     #!/bin/bash
     exec > >(tee /var/log/user-data.log) 2>&1
     set -x
     
+    # Exit on error but allow some commands to fail gracefully
+    set -e
+    
+    # Update package list
     apt update -y
+    
+    # Install git if not present
+    apt install -y git
+    
+    # Clone repository
     git clone https://github.com/davidawcloudsecurity/learn-lovable-borderless-trade-sphere.git
     cd learn-lovable-borderless-trade-sphere/
     
-    # Replace localhost with actual IP
-    sed -i "s/localhost/\$(hostname -I | awk '{print \$1}')/g" server.js
+    # Replace localhost with actual IP (fix the escaping)
+    sed -i "s/localhost/$(hostname -I | awk '{print $1}')/g" server.js
     
     # Install Node.js
     curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -
     apt-get install -y nodejs
     
-    # Install npm packages
-    npm install -y express cors
+    # Install npm packages (remove -y flag from npm install)
+    npm install express cors
     npm install pg @types/pg
     npm install dotenv
     
@@ -489,17 +498,28 @@ resource "aws_launch_template" "mysql" {
     # Install Docker
     apt install -y apt-transport-https ca-certificates curl software-properties-common
     curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
-    add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu focal stable"
-    apt-cache policy docker-ce
+    add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+    apt update -y
     apt install -y docker-ce
     systemctl start docker
     systemctl enable docker
     
+    # Add current user to docker group
+    usermod -aG docker ubuntu || true
+    
     # Wait for Docker to be ready
-    while ! docker info >/dev/null 2>&1; do
-      echo "Waiting for Docker to start..."
+    echo "Waiting for Docker to start..."
+    timeout=60
+    while ! docker info >/dev/null 2>&1 && [ $timeout -gt 0 ]; do
+      echo "Waiting for Docker to start... ($timeout seconds remaining)"
       sleep 2
+      timeout=$((timeout-2))
     done
+    
+    if ! docker info >/dev/null 2>&1; then
+      echo "ERROR: Docker failed to start within 60 seconds"
+      exit 1
+    fi
     
     # Start PostgreSQL container
     docker run -d \
@@ -510,21 +530,20 @@ resource "aws_launch_template" "mysql" {
       -p 5432:5432 \
       postgres:16
     
-    # Wait for PostgreSQL to be ready
-    echo "Waiting for PostgreSQL to be ready..."
-	for i in {1..30}; do
-	  if docker exec postgres bash -c "PGPASSWORD=rootpassword pg_isready -h ${aws_db_instance.postgres.endpoint} -U wordpress -d wordpress" > /dev/null 2>&1; then
-	    echo "✅ PostgreSQL is ready!"
-	    break
-	  else
-	    echo "⏳ Attempt $i/30: PostgreSQL not ready yet..."
-	    sleep 5
-	  fi
-	done
-
-    # Create products table
-    docker exec postgres bash -c "PGPASSWORD=rootpassword psql -h ${aws_db_instance.postgres.endpoint} -U wordpress -d wordpress -c 
-    \"CREATE TABLE IF NOT EXISTS products (
+    # Wait for PostgreSQL container to be ready
+    echo "Waiting for PostgreSQL container to be ready..."
+    for i in {1..30}; do
+      if docker exec postgres pg_isready -U wordpress > /dev/null 2>&1; then
+        echo "✅ PostgreSQL container is ready!"
+        break
+      else
+        echo "⏳ Attempt $i/30: PostgreSQL container not ready yet..."
+        sleep 5
+      fi
+    done
+    
+    # Create products table (fix the SQL formatting)
+    docker exec postgres bash -c "PGPASSWORD=rootpassword psql -U wordpress -d wordpress -c \"CREATE TABLE IF NOT EXISTS products (
         id SERIAL PRIMARY KEY,
         name VARCHAR(255) NOT NULL,
         price DECIMAL(10,2) NOT NULL,
@@ -540,15 +559,17 @@ resource "aws_launch_template" "mysql" {
     
     # Insert sample data if 100.MD exists
     if [ -f "100.MD" ]; then
-	  cat 100.MD | docker exec -i postgres bash -c "PGPASSWORD=rootpassword psql -h ${aws_db_instance.postgres.endpoint} -U wordpress -d wordpress"
+      echo "Loading sample data from 100.MD..."
+      cat 100.MD | docker exec -i postgres bash -c "PGPASSWORD=rootpassword psql -U wordpress -d wordpress"
     fi
     
     # Start the Node.js application
+    echo "Starting Node.js application..."
     nohup node server.js > /var/log/node-app.log 2>&1 &
     
-    echo "User data script completed successfully"
-  EOF
-  )
+    echo "User data script completed successfully at $(date)"
+EOF
+)
 }
 /*
 # WORDPRESS AUTOSCALING GROUP
