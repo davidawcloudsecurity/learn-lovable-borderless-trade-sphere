@@ -482,7 +482,7 @@ npm install dotenv
 
 # If needed, strip the port from the endpoint
 RDS_ENDPOINT="${aws_db_instance.postgres.endpoint}"
-RDS_ENDPOINT="${RDS_ENDPOINT%:*}"
+RDS_ENDPOINT=$(echo "$RDS_ENDPOINT" | cut -d: -f1)
 
 # Create .env file
 echo "POSTGRES_HOST=${RDS_ENDPOINT}" > .env
