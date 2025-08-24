@@ -459,7 +459,7 @@ resource "aws_launch_template" "mysql" {
     }
   }
 
-	user_data = base64encode(<<-EOF
+	user_data = <<-EOF
 #!/bin/bash
 exec > >(tee /var/log/user-data.log) 2>&1
 set -x
@@ -551,8 +551,7 @@ fi
 nohup node server.js > /var/log/node-app.log 2>&1 &
 
 echo "User data script completed successfully"
-EOF
-)
+	EOF
 }
 /*
 # WORDPRESS AUTOSCALING GROUP
