@@ -28,13 +28,14 @@ terraform import aws_iam_role.ec2_ssm_role ec2_ssm_role
 You need the **ARN** of the existing target group. Get it via the AWS Console or CLI:
 
 ```bash
-aws elbv2 describe-target-groups --names frontend-tg
+aws elbv2 describe-target-groups --names frontend-tg --query "TargetGroups[0].TargetGroupArn" --output text
 ```
 
 Then import:
 
 ```bash
-terraform import aws_lb_target_group.frontend arn:aws:elasticloadbalancing:region:account-id:targetgroup/frontend-tg/xxxxxxxxxxxxxxx
+terraform import aws_lb_target_group.frontend $(aws elbv2 describe-target-groups --names frontend-tg --query "TargetGroups[0].TargetGroupArn" --output text
+)
 ```
 
 ---
@@ -44,13 +45,14 @@ terraform import aws_lb_target_group.frontend arn:aws:elasticloadbalancing:regio
 Same as above:
 
 ```bash
-aws elbv2 describe-target-groups --names backend-tg
+aws elbv2 describe-target-groups --names backend-tg --query "TargetGroups[0].TargetGroupArn" --output text
 ```
 
 Then:
 
 ```bash
-terraform import aws_lb_target_group.backend arn:aws:elasticloadbalancing:region:account-id:targetgroup/backend-tg/yyyyyyyyyyyyyyy
+terraform import aws_lb_target_group.backend $(aws elbv2 describe-target-groups --names backend-tg --query "TargetGroups[0].TargetGroupArn" --output text
+)
 ```
 
 ---
