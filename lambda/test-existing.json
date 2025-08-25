@@ -1,0 +1,31 @@
+{
+  "httpMethod": "GET",
+  "path": "/api/search",
+  "pathParameters": null,
+  "queryStringParameters": {
+    "q": "test"
+  },
+  "multiValueQueryStringParameters": null,
+  "headers": {
+    "Accept": "application/json",
+    "Content-Type": "application/json",
+    "Host": "example.com"
+  },
+  "multiValueHeaders": {},
+  "body": null,
+  "isBase64Encoded": false,
+  "requestContext": {
+    "accountId": "123456789012",
+    "apiId": "example",
+    "protocol": "HTTP/1.1",
+    "httpMethod": "GET",
+    "path": "/api/search",
+    "stage": "dev",
+    "requestId": "example-request-id",
+    "identity": {
+      "sourceIp": "127.0.0.1"
+    }
+  },
+  "resource": "/api/search",
+  "stageVariables": null
+}
